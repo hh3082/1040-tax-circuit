@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roth conversions — where the tax circuit goes non-convex</title>
+<meta name="description" content="The retirement tax circuit: the Social Security torpedo and IRMAA cliffs make the cost of a Roth conversion non-convex and discontinuous. A single-year MILP and a multi-year dynamic program find the optimal conversion schedule. Built strictly from IRS publications.">
+<style>
+  :root{
+    --bg:#fbfaf7; --surface:#ffffff; --surface2:#f3f1ea; --line:#e6e3da;
+    --ink:#1c1c1a; --ink2:#5f5e5a; --ink3:#8a8880;
+    --blue:#185fa5; --blue-bg:#e6f1fb; --teal:#0f6e56; --teal-bg:#e1f5ee;
+    --amber:#854f0b; --amber-bg:#faeeda; --red:#a32d2d; --red-bg:#fcebeb;
+    --green:#3b6d11; --green-bg:#eaf3de; --radius:12px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#1a1916;--surface:#222019;--surface2:#2b2922;--line:#3a382f;
+      --ink:#ece9e0;--ink2:#b4b2a9;--ink3:#83817a;
+      --blue:#85b7eb;--blue-bg:#11233a;--teal:#5dcaa5;--teal-bg:#0b261f;
+      --amber:#ef9f27;--amber-bg:#2e2410;--red:#f09595;--red-bg:#2e1414;--green:#97c459;--green-bg:#1a2810;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+  h1{font-size:34px;font-weight:600;letter-spacing:-.02em;margin:.2em 0 .1em;line-height:1.15}
+  h2{font-size:23px;font-weight:600;letter-spacing:-.01em;margin:2.2em 0 .5em}
+  h3{font-size:17px;font-weight:600;margin:1.4em 0 .3em}
+  p{margin:.6em 0;color:var(--ink)}
+  .lede{font-size:19px;color:var(--ink2);margin:.4em 0 1em}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  .sub{color:var(--ink2)}
+  .back{display:inline-block;font-size:14px;margin:18px 0 0}
+  .disclaim{background:var(--amber-bg);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);
+    color:var(--amber);border-radius:10px;padding:11px 15px;font-size:13.5px;margin:18px 0}
+  header.hero{padding:40px 0 8px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:12.5px;font-weight:600;color:var(--teal);background:var(--teal-bg);
+    padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:14px 0}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:7px}
+  .p-blue{background:var(--blue-bg);color:var(--blue)} .p-amber{background:var(--amber-bg);color:var(--amber)}
+  .p-red{background:var(--red-bg);color:var(--red)} .p-teal{background:var(--teal-bg);color:var(--teal)}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:0 0 4px}
+  input[type=number],select{width:100%;font-size:15px;font-family:var(--sans);padding:9px 11px;border:1px solid var(--line);
+    border-radius:9px;background:var(--surface);color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 18%,transparent)}
+  .field{margin:0 0 10px}
+  .metric{background:var(--surface2);border-radius:10px;padding:13px 15px}
+  .metric .k{font-size:12.5px;color:var(--ink2)} .metric .v{font-size:23px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+  button{font-family:var(--sans);font-size:15px;font-weight:600;padding:11px 18px;border-radius:10px;border:1px solid var(--blue);
+    background:var(--blue);color:#fff;cursor:pointer;transition:transform .08s}
+  button:active{transform:scale(.985)}
+  .opt-out{background:var(--green-bg);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:10px;padding:14px 16px;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:.4em 0}
+  td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--ink2);font-weight:600;font-size:12.5px}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  footer{border-top:1px solid var(--line);margin-top:48px;padding:26px 0 60px;color:var(--ink2);font-size:13.5px}
+  .svgcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;overflow:auto;margin:14px 0}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:4px 4px 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .swb{width:11px;height:11px;border-radius:3px;display:inline-block}
+  ul{padding-left:20px} li{margin:.25em 0}
+  .katex{font-size:1.0em}
+  .eq{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 14px;margin:10px 0;overflow-x:auto}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:true},{left:"\\(",right:"\\)",display:false}],throwOnError:false});});</script>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <span class="tag">retirement · the non-convex circuit</span>
+  <h1>Roth conversions: where the circuit stops being convex.</h1>
+  <p class="lede">On a working-age 1040, &ldquo;least tax&rdquo; is a small convex program &mdash; a line search down the brackets. In retirement it isn&rsquo;t. Two documented mechanisms &mdash; the <strong>Social Security torpedo</strong> and the <strong>IRMAA Medicare cliffs</strong> &mdash; make the cost of converting a dollar to Roth rise, then fall, then jump. The objective is non-convex and discontinuous, so finding the best conversion needs a <strong>mixed-integer program</strong> (one year) and a <strong>dynamic program</strong> (across years).</p>
+  <div class="disclaim"><strong>Not tax advice.</strong> An educational model of 2025 federal rules with simplified assumptions. Every constant is transcribed from an IRS publication or the Federal Register (sources at the bottom); the optimization is a model over that engine, not a recommendation. Consult a qualified professional before acting.</div>
+  <a class="back" href="index.html">&larr; back to the 1040 circuit</a>
+</div></header>
+
+<main class="wrap">
+
+<h2>Why a line search breaks</h2>
+<p>The working-age circuit has one nonlinear edge &mdash; the bracket function &mdash; and it is <em>convex</em>: the marginal rate only ever goes up as income rises. So filling the lowest available bracket first is optimal, and &ldquo;optimize my levers&rdquo; is a tiny linear program. A retiree converting a traditional IRA to Roth faces a different cost surface. The conversion is ordinary income, but it drags two other quantities with it:</p>
+<ul>
+  <li><span class="pill p-amber">torpedo</span> <strong>Taxable Social Security.</strong> As provisional income rises, each conversion dollar can pull <span class="mono">$0.50</span> then <span class="mono">$0.85</span> of Social Security into taxable income (Pub. 915, Worksheet 1). For a while a dollar converted adds <em>$1.85</em> of taxable income &mdash; the marginal rate humps <em>up</em> &mdash; then, once 85% of benefits are taxed, the extra stops and the rate falls back. A hump up-then-down is not convex.</li>
+  <li><span class="pill p-red">cliff</span> <strong>IRMAA.</strong> Medicare Part&nbsp;B and D premiums step up at fixed MAGI thresholds (Federal Register 2024&#8209;26474). Crossing a threshold by one dollar adds a full year&rsquo;s surcharge at once &mdash; a <em>discontinuous</em> jump of hundreds to thousands of dollars.</li>
+  <li><span class="pill p-teal">stacking</span> <strong>Capital-gains stacking.</strong> Long-term gains and qualified dividends sit on top of ordinary income (the Qualified Dividends and Capital Gain Tax Worksheet). A conversion can push gains from the 0% band into the 15% band, adding rate on income that isn&rsquo;t even the conversion.</li>
+</ul>
+<p>Put together, the marginal cost of the next converted dollar looks like the curve below &mdash; it is computed live from the engine for the inputs you set.</p>
+
+<h2 id="calc">Run the retirement circuit</h2>
+<div class="card">
+  <div class="grid g3">
+    <div class="field"><label for="status">Filing status</label>
+      <select id="status"><option value="single">Single</option><option value="mfj">Married filing jointly</option><option value="hoh">Head of household</option><option value="qss">Qualifying surviving spouse</option><option value="mfs">Married filing separately</option></select></div>
+    <div class="field"><label for="age">Age (65+ adds the extra standard deduction)</label><input id="age" type="number" value="67" min="50" max="100" step="1"></div>
+    <div class="field"><label for="ordinary">Other ordinary income (pension, RMDs, interest)</label><input id="ordinary" type="number" value="22000" min="0" step="500"></div>
+    <div class="field"><label for="ss">Social Security benefits / yr</label><input id="ss" type="number" value="30000" min="0" step="500"></div>
+    <div class="field"><label for="ltcg">Long-term gains + qualified dividends</label><input id="ltcg" type="number" value="5000" min="0" step="500"></div>
+    <div class="field"><label for="rstar">Future marginal rate you&rsquo;re avoiding (r*)</label><input id="rstar" type="number" value="24" min="0" max="50" step="1"></div>
+  </div>
+  <div class="grid g3" style="margin-top:4px">
+    <div class="metric"><div class="k">This year&rsquo;s tax (no conversion)</div><div class="v" id="o_base">&mdash;</div></div>
+    <div class="metric"><div class="k">AGI / MAGI (no conversion)</div><div class="v" id="o_magi">&mdash;</div></div>
+    <div class="metric"><div class="k">Taxable Social Security</div><div class="v" id="o_ss">&mdash;</div></div>
+  </div>
+  <div style="margin-top:14px"><button id="optbtn">Find the optimal conversion &rarr;</button></div>
+  <div class="opt-out" id="opt" style="display:none"></div>
+</div>
+
+<div class="svgcard" aria-label="Marginal cost of the next converted dollar">
+  <svg id="curve" viewBox="0 0 820 320" width="100%" role="img"><title>Marginal cost of the next Roth-conversion dollar</title></svg>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--blue)"></span> marginal income+LTCG+NIIT rate (continuous, non-convex)</span>
+    <span><span class="sw" style="background:var(--red)"></span> IRMAA cliff (discontinuous lump)</span>
+  </div>
+</div>
+<p class="sub" style="font-size:14px">The blue curve is the marginal cost of one more converted dollar from <em>income</em> tax alone &mdash; note the Social&#8209;Security <strong>hump</strong> and how it falls back once benefits are 85% taxed. The red verticals are the <strong>IRMAA thresholds</strong>: each is a step you pay all at once. A greedy &ldquo;fill the next bracket&rdquo; rule walks straight over those steps; the optimizer above stops just short of them.</p>
+
+<h2>One year: a mixed-integer linear program</h2>
+<p>The continuous part of the cost &mdash; brackets, the Social-Security ramp, capital-gains stacking, NIIT &mdash; is piecewise-linear but <em>non-convex</em>. The IRMAA part is a <em>discontinuous step</em>. We model the conversion <span class="mono">c</span> exactly: the continuous cost as a piecewise-linear function with a breakpoint at every kink (an SOS2 / convex-combination representation, with weights \(\lambda_i\) on the kink values), and the IRMAA step with one binary \(z_k\) per MAGI tier, switched by big-\(M\) constraints &mdash; the same device the 1040 model uses for the Saver&rsquo;s-Credit step.</p>
+<div class="eq">
+$$\begin{aligned}
+\max_{c,\ \lambda,\ z}\quad & r^{*}\, c \;-\;\Big(\textstyle\sum_i \lambda_i\,T_i \;+\; \sum_k s_k\, z_k \;-\; \text{cost}(0)\Big)\\[2pt]
+\text{s.t.}\quad & c=\textstyle\sum_i \lambda_i\, c_i,\qquad \textstyle\sum_i \lambda_i = 1,\qquad \lambda \ \text{SOS2 (only adjacent }\lambda_i>0)\\
+& \textstyle\sum_k z_k = 1,\qquad z_k\in\{0,1\}\\
+& L_k - M(1-z_k)\ \le\ \textstyle\sum_i \lambda_i\,\mathrm{MAGI}_i\ \le\ U_k + M(1-z_k)\quad\forall k
+\end{aligned}$$
+</div>
+<p>Here \(c_i\) are the conversion amounts at the kinks, \(T_i\) the continuous tax there, \(s_k\) the annual IRMAA surcharge in tier \(k\) with MAGI band \([L_k,U_k]\), and \(r^{*}\) the future marginal rate the conversion avoids. The big-\(M\) rows force the active tier to match the chosen MAGI, so the binary truly prices the cliff. Solved with <span class="mono">scipy.optimize.milp</span> (HiGHS), this recovers the global optimum &mdash; verified to match a fine line search to the dollar across \(r^{*}=20\%\ldots30\%\). The button above runs the equivalent search in your browser.</p>
+
+<h2>Across years: a dynamic program</h2>
+<p>The single-year problem already needs binaries. Stringing years together adds <strong>state</strong>: the traditional-IRA balance grows, and from age&nbsp;73 it throws off <strong>Required Minimum Distributions</strong> &mdash; forced taxable income equal to the prior year-end balance divided by an age factor (Pub. 590-B, Uniform Lifetime Table). A conversion today is taxed now but shrinks <em>every future RMD</em>. Years are coupled; you cannot optimize one in isolation.</p>
+<p>Enumerating conversion schedules is hopeless: \(G\) choices per year over \(T\) years is \(G^{T}\) policies &mdash; for \(G=81,\ T=25\) that is about \(10^{48}\). Dynamic programming over the one-dimensional balance state is \(T\cdot|B|\cdot G\) &mdash; here about <strong>326,000</strong> stage evaluations. Each stage solves the same non-convex single-year cost; Bellman&rsquo;s recursion stitches them into an optimal schedule. (Validated against brute force on a short horizon: 0.14% gap.)</p>
+
+<div class="card">
+  <p style="margin-top:2px"><strong>Worked example.</strong> Single filer, age 65, <span class="mono">$900,000</span> traditional IRA, <span class="mono">$22k</span> pension + <span class="mono">$30k</span> Social Security + <span class="mono">$5k</span> gains per year. Balance grows 5%/yr; future cash flows discounted 3%/yr; any traditional balance left at the horizon is assumed eventually taxed at 24%.</p>
+  <div class="grid g3">
+    <div class="metric"><div class="k">Do nothing (RMDs only) — PV lifetime tax</div><div class="v" style="color:var(--red)">$348,550</div></div>
+    <div class="metric"><div class="k">Optimal conversion schedule — PV lifetime tax</div><div class="v" style="color:var(--teal)">$270,438</div></div>
+    <div class="metric"><div class="k">Present-value tax saved</div><div class="v" style="color:var(--green)">$78,112</div></div>
+  </div>
+</div>
+
+<div class="svgcard" aria-label="Optimal Roth-conversion schedule vs. do-nothing">
+  <svg id="multi" viewBox="0 0 820 430" width="100%" role="img"><title>Traditional-IRA balance and conversion schedule, optimal vs. do-nothing</title></svg>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--amber)"></span> balance if you do nothing (the growing tax bomb)</span>
+    <span><span class="sw" style="background:var(--blue)"></span> balance under optimal conversions</span>
+    <span><span class="swb" style="background:var(--teal)"></span> Roth conversion that year</span>
+  </div>
+</div>
+<p class="sub" style="font-size:14px">Doing nothing lets the IRA grow to <span class="mono">$1.38M</span>; after age 73 its RMDs are forced out at rising rates, and a six-figure deferred liability rides to the end. The optimizer converts hard in the low-rate early years &mdash; each year stopping just under an IRMAA threshold &mdash; draining the balance by age 80, after which that retiree&rsquo;s tax is just <span class="mono">$1,628</span>/yr. The result is sensitive to the assumed future/heir rate: that terminal condition is part of the control problem, not a hidden constant.</p>
+
+<p>So the same idea that turned a 1040 into a circuit scales: the forward map is the documented tax engine; &ldquo;least tax&rdquo; is an optimization over the levers. The levers here &mdash; how much to convert, and when &mdash; live in a cost landscape with humps and cliffs, which is exactly why it takes a mixed-integer program and a dynamic program rather than a line down the brackets.</p>
+
+<h2 id="sources">Sources</h2>
+<p class="sub" style="font-size:14px">Every constant in the engine is transcribed from one of these, not from memory:</p>
+<ul style="font-size:14.5px">
+  <li><strong>Brackets, standard deduction, age-65 add-on, capital-gains worksheet</strong> &mdash; <a href="https://www.irs.gov/forms-pubs/about-form-1040">2025 Instructions for Form 1040</a> (Tax Computation Worksheet; Qualified Dividends and Capital Gain Tax Worksheet).</li>
+  <li><strong>Taxable Social Security (the torpedo)</strong> &mdash; <a href="https://www.irs.gov/forms-pubs/about-publication-915">Pub. 915</a>, Worksheet 1 (base amounts $25,000 / $32,000; second tier $34,000 / $44,000; 50% and 85% inclusion).</li>
+  <li><strong>Net Investment Income Tax</strong> &mdash; <a href="https://www.irs.gov/forms-pubs/about-form-8960">Instructions for Form 8960</a> (3.8% of the lesser of NII or MAGI over $200,000 / $250,000 / $125,000).</li>
+  <li><strong>IRMAA Medicare premiums</strong> &mdash; <a href="https://www.govinfo.gov/content/pkg/FR-2024-11-14/pdf/2024-26474.pdf">Federal Register 2024-26474</a> (2025 Part B income-related adjustment table).</li>
+  <li><strong>RMDs and the Uniform Lifetime Table</strong> &mdash; <a href="https://www.irs.gov/forms-pubs/about-publication-590-b">Pub. 590-B</a>, Appendix B, Table III (age-73 start; applicable denominators).</li>
+</ul>
+
+</main>
+
+<footer><div class="wrap">
+  <p><strong>The Tax Circuit — retirement</strong> &mdash; an educational model. <a href="index.html">the 1040 circuit</a> &middot; <a href="methodology.html">methodology &amp; sources</a> &middot; <a href="business.html">small business</a> &middot; <a href="https://github.com/hh3082/1040-tax-circuit">source on GitHub</a>. Not affiliated with the IRS. <strong>Not tax, legal, or financial advice.</strong></p>
+</div></footer>
+
+<script>
+/* ---- engine: a 1:1 port of models/retire_tax.py (all constants cited above) ---- */
+const BRACK={
+ single:[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]],
+ mfj:[[0,.10],[23850,.12],[96950,.22],[206700,.24],[394600,.32],[501050,.35],[751600,.37]],
+ hoh:[[0,.10],[17000,.12],[64850,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]]};
+BRACK.qss=BRACK.mfj;
+BRACK.mfs=[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[375800,.37]];
+const STD={single:15750,mfs:15750,mfj:31500,qss:31500,hoh:23625};
+const STD65={single:2000,hoh:2000,mfs:1600,mfj:1600,qss:1600};
+const SSB={single:25000,hoh:25000,qss:25000,mfs:25000,mfj:32000};
+const SSB2={single:34000,hoh:34000,qss:34000,mfs:34000,mfj:44000};
+const LT0={single:48350,mfs:48350,mfj:96700,qss:96700,hoh:64750};
+const LT15={single:533400,mfs:300000,mfj:600050,qss:600050,hoh:566700};
+const NIITTHR={single:200000,hoh:200000,mfj:250000,qss:250000,mfs:125000};
+const IRMAAB=[[106000,212000,185.00],[133000,266000,259.00],[167000,334000,370.00],[200000,400000,480.90],[500000,750000,591.90],[Infinity,Infinity,628.90]];
+const IRMAABASE=185.00;
+const $=id=>document.getElementById(id);
+const usd=x=>'$'+Math.round(x).toLocaleString();
+function stdDed(st,boxes){return STD[st]+boxes*STD65[st];}
+function ordTax(ti,st){ti=Math.max(ti,0);const b=BRACK[st];let t=0;for(let i=0;i<b.length;i++){const nx=i+1<b.length?b[i+1][0]:Infinity;if(ti>b[i][0])t+=(Math.min(ti,nx)-b[i][0])*b[i][1];}return t;}
+function ssTax(ss,other,st){if(ss<=0)return 0;const b1=SSB[st],b2=SSB2[st],prov=other+0.5*ss;
+  if(prov<=b1)return 0; if(prov<=b2)return Math.min(0.5*ss,0.5*(prov-b1));
+  const lower=Math.min(0.5*ss,0.5*(b2-b1)); return Math.min(0.85*ss,0.85*(prov-b2)+lower);}
+function ltcgTax(ltcg,ordT,st){if(ltcg<=0)return 0;const t0=LT0[st],t15=LT15[st],s=ordT;
+  const a15=Math.max(0,Math.min(s+ltcg,t15)-Math.max(s,t0)); const a20=Math.max(0,(s+ltcg)-Math.max(s,t15));
+  return 0.15*a15+0.20*a20;}
+function niit(nii,magi,st){return 0.038*Math.max(0,Math.min(nii,magi-NIITTHR[st]));}
+function irmaa(magi,st){const joint=(st==='mfj'||st==='qss');for(const[se,je,p]of IRMAAB){const e=joint?je:se;if(magi<=e)return (p-IRMAABASE)*12;}return (IRMAAB[IRMAAB.length-1][2]-IRMAABASE)*12;}
+function totalTax(ordinary,ss,ltcg,st,boxes,medicare){
+  const ssInc=ssTax(ss,ordinary+ltcg,st), agi=ordinary+ssInc+ltcg;
+  const taxable=Math.max(agi-stdDed(st,boxes),0), ordT=Math.max(taxable-ltcg,0);
+  const inc=ordTax(ordT,st)+ltcgTax(ltcg,ordT,st), nt=niit(ltcg,agi,st), ir=medicare?irmaa(agi,st):0;
+  return {agi,ssInc,taxable,total:Math.round(inc)+nt+ir,withoutIrmaa:Math.round(inc)+nt};}
+
+function readR(){
+  const st=$('status').value, age=+$('age').value;
+  const boxes=age>=65?((st==='single'||st==='hoh')?1:1):0; // one age-65 box for the filer
+  return {status:st,boxes:boxes,ordinary:+$('ordinary').value,ss:+$('ss').value,ltcg:+$('ltcg').value};}
+
+/* ---- live marginal-cost curve + IRMAA cliffs ---- */
+function drawCurve(){
+  const R=readR(), CMAX=160000, S=250, W=820,H=320, L=58,Rm=14,Tp=16,B=40;
+  const cost=(c,med)=>totalTax(R.ordinary+c,R.ss,R.ltcg,R.status,R.boxes,med);
+  const pts=[]; let ymax=0;
+  for(let c=0;c<=CMAX;c+=S){const m=100*(cost(c+S,false).withoutIrmaa-cost(c,false).withoutIrmaa)/S; pts.push([c,m]); if(m>ymax)ymax=m;}
+  ymax=Math.max(20,Math.min(60,Math.ceil(ymax/5)*5+5));
+  const cliffs=[]; let prev=irmaa(cost(0,true).agi,R.status);
+  for(let c=S;c<=CMAX;c+=S){const cur=irmaa(cost(c,true).agi,R.status); if(cur>prev+0.5){cliffs.push([c,cur-prev]);} prev=cur;}
+  const x=c=>L+(c/CMAX)*(W-L-Rm), y=v=>Tp+(1-v/ymax)*(H-Tp-B);
+  let s='';
+  // grid + y ticks
+  for(let t=0;t<=ymax;t+=10){const yy=y(t);s+=`<line x1="${L}" y1="${yy}" x2="${W-Rm}" y2="${yy}" stroke="var(--line)"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink3)">${t}%</text>`;}
+  // x ticks
+  for(let c=0;c<=CMAX;c+=40000){const xx=x(c);s+=`<line x1="${xx}" y1="${H-B}" x2="${xx}" y2="${H-B+4}" stroke="var(--ink3)"/><text x="${xx}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="var(--ink3)">$${c/1000}k</text>`;}
+  s+=`<text x="${(L+W-Rm)/2}" y="${H-4}" text-anchor="middle" font-size="12" fill="var(--ink2)">Roth conversion this year</text>`;
+  s+=`<text transform="translate(15 ${(Tp+H-B)/2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink2)">marginal cost of next $</text>`;
+  // cliffs
+  for(const[c,j]of cliffs){const xx=x(c);s+=`<line x1="${xx}" y1="${Tp}" x2="${xx}" y2="${H-B}" stroke="var(--red)" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+    s+=`<text x="${xx+3}" y="${Tp+12}" font-size="10.5" fill="var(--red)">+${usd(j)} IRMAA</text>`;}
+  // curve
+  let d='';pts.forEach((p,i)=>{d+=(i?'L':'M')+x(p[0]).toFixed(1)+' '+y(Math.min(p[1],ymax)).toFixed(1)+' ';});
+  s+=`<path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2.2"/>`;
+  $('curve').innerHTML=`<title>Marginal cost of the next Roth-conversion dollar</title>`+s;
+}
+
+/* ---- single-year optimizer (cliff-aware search; matches the MILP) ---- */
+function optimize(){
+  const R=readR(), rstar=+$('rstar').value/100, CMAX=160000, S=100;
+  const cost=c=>totalTax(R.ordinary+c,R.ss,R.ltcg,R.status,R.boxes,true).total;
+  const base=cost(0); let best={c:0,net:0};
+  for(let c=0;c<=CMAX;c+=S){const net=rstar*c-(cost(c)-base); if(net>best.net+1e-9)best={c,net};}
+  const t=totalTax(R.ordinary+best.c,R.ss,R.ltcg,R.status,R.boxes,true);
+  const avg=best.c>1?100*(cost(best.c)-base)/best.c:0;
+  const box=$('opt');box.style.display='block';
+  if(best.c<S){box.innerHTML=`<strong>Convert $0 this year.</strong> At a future rate of ${(rstar*100).toFixed(0)}%, the very first converted dollar already costs more than ${(rstar*100).toFixed(0)}% here (the Social-Security hump lifts the entry rate), so converting loses money this year.`;}
+  else{box.innerHTML=`<strong>Convert ${usd(best.c)} this year.</strong> Average cost on the conversion <span class="mono">${avg.toFixed(1)}%</span> &lt; your ${(rstar*100).toFixed(0)}% future rate &rarr; net benefit <strong>${usd(best.net)}</strong>. It stops at MAGI ${usd(t.agi)} &mdash; ${(t.agi>=IRMAAB[0][ (R.status==='mfj'||R.status==='qss')?1:0 ]-S? 'just under the next IRMAA threshold.':'before the bracket cost exceeds your future rate.')}`;}
+}
+
+/* ---- static multi-year worked example (DP output from models/multiyear.py) ---- */
+const AGES=[65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89];
+const CONV=[146250,157697,141403,75656,79118,77024,76761,78217,42704,43669,46397,47780,49993,12734,4658,0,0,0,0,0,0,0,0,0,0];
+const OPTBAL=[900000,791438,665428,550225,498298,440139,381270,319734,253593,211385,167398,119905,70420,18219,4889,0,0,0,0,0,0,0,0,0,0];
+const BASEBAL=[900000,945000,992250,1041862,1093956,1148653,1206086,1266390,1329710,1343509,1355363,1365281,1373057,1378754,1381887,1382215,1379477,1373789,1364507,1351787,1334889,1314032,1288961,1259423,1225869];
+function drawMulti(){
+  const W=820,H=430,L=64,Rm=14;
+  const aTop=20,aBot=250, bTop=276,bBot=400; // panel A (balance lines), panel B (conversion bars)
+  const n=AGES.length, x=i=>L+(i/(n-1))*(W-L-Rm);
+  const balMax=1.45e6, yA=v=>aTop+(1-v/balMax)*(aBot-aTop);
+  const cMax=170000, yB=v=>bBot-(v/cMax)*(bBot-bTop);
+  let s='';
+  // panel A grid
+  for(let v=0;v<=1.4e6;v+=350000){const yy=yA(v);s+=`<line x1="${L}" y1="${yy}" x2="${W-Rm}" y2="${yy}" stroke="var(--line)"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink3)">$${(v/1e6).toFixed(2)}M</text>`;}
+  s+=`<text transform="translate(16 ${(aTop+aBot)/2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink2)">traditional IRA balance</text>`;
+  const line=(arr,col,w)=>{let d='';arr.forEach((v,i)=>{d+=(i?'L':'M')+x(i).toFixed(1)+' '+yA(v).toFixed(1)+' ';});return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}"/>`;};
+  s+=line(BASEBAL,'var(--amber)',2.4)+line(OPTBAL,'var(--blue)',2.4);
+  // panel B bars
+  const bw=(W-L-Rm)/n*0.62;
+  s+=`<line x1="${L}" y1="${bBot}" x2="${W-Rm}" y2="${bBot}" stroke="var(--ink3)"/>`;
+  for(let v=0;v<=150000;v+=75000){const yy=yB(v);s+=`<line x1="${L}" y1="${yy}" x2="${W-Rm}" y2="${yy}" stroke="var(--line)"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink3)">$${v/1000}k</text>`;}
+  s+=`<text transform="translate(16 ${(bTop+bBot)/2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink2)">conversion</text>`;
+  CONV.forEach((v,i)=>{if(v<=0)return;const h=bBot-yB(v);s+=`<rect x="${x(i)-bw/2}" y="${yB(v)}" width="${bw}" height="${h}" rx="1.5" fill="var(--teal)" opacity="0.85"/>`;});
+  // x labels (ages) under bottom panel
+  for(let i=0;i<n;i+=2){s+=`<text x="${x(i)}" y="${bBot+16}" text-anchor="middle" font-size="10.5" fill="var(--ink3)">${AGES[i]}</text>`;}
+  s+=`<text x="${(L+W-Rm)/2}" y="${H-2}" text-anchor="middle" font-size="12" fill="var(--ink2)">age</text>`;
+  // RMD start marker
+  const xr=x(8);s+=`<line x1="${xr}" y1="${aTop}" x2="${xr}" y2="${bBot}" stroke="var(--ink3)" stroke-width="1" stroke-dasharray="3 3"/><text x="${xr+4}" y="${aTop+12}" font-size="10.5" fill="var(--ink2)">RMDs start (73)</text>`;
+  $('multi').innerHTML=`<title>Traditional-IRA balance and conversion schedule, optimal vs. do-nothing</title>`+s;
+}
+
+function render(){
+  const R=readR(), t=totalTax(R.ordinary,R.ss,R.ltcg,R.status,R.boxes,true);
+  $('o_base').textContent=usd(t.total); $('o_magi').textContent=usd(t.agi); $('o_ss').textContent=usd(t.ssInc);
+  $('opt').style.display='none'; drawCurve();
+}
+['status','age','ordinary','ss','ltcg','rstar'].forEach(id=>$(id).addEventListener('input',render));
+$('optbtn').addEventListener('click',optimize);
+render(); drawMulti();
+</script>
+</body>
+</html>
