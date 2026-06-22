@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology &amp; sources — The 1040 Tax Circuit</title>
+<meta name="description" content="The math behind the 1040 tax circuit: fixed-point feedback loops, the optimization, and the IRS forms, worksheets, publications, and revenue procedures it is built from.">
+<style>
+  :root{--bg:#fbfaf7;--surface:#ffffff;--surface2:#f3f1ea;--line:#e6e3da;--ink:#1c1c1a;--ink2:#5f5e5a;--ink3:#8a8880;
+    --blue:#185fa5;--blue-bg:#e6f1fb;--teal:#0f6e56;--teal-bg:#e1f5ee;--amber:#854f0b;--amber-bg:#faeeda;--red:#a32d2d;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  @media (prefers-color-scheme: dark){:root{--bg:#1a1916;--surface:#222019;--surface2:#2b2922;--line:#3a382f;--ink:#ece9e0;--ink2:#b4b2a9;--ink3:#83817a;
+    --blue:#85b7eb;--blue-bg:#11233a;--teal:#5dcaa5;--teal-bg:#0b261f;--amber:#ef9f27;--amber-bg:#2e2410;--red:#f09595;}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:780px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue)}a:hover{text-decoration:underline}
+  h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin:.3em 0 .1em}
+  h2{font-size:21px;font-weight:600;margin:1.9em 0 .4em}
+  h3{font-size:16px;font-weight:600;margin:1.3em 0 .2em}
+  p{margin:.6em 0} code,.mono{font-family:var(--mono);font-size:.92em;background:var(--surface2);padding:1px 5px;border-radius:5px}
+  .sub{color:var(--ink2)} .back{display:inline-block;margin:30px 0 0;font-size:14px}
+  header{padding:38px 0 10px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:12.5px;font-weight:600;color:var(--teal);background:var(--teal-bg);padding:3px 11px;border-radius:20px}
+  .disclaim{background:var(--amber-bg);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--amber);border-radius:10px;padding:11px 15px;font-size:13.5px;margin:18px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:.6em 0}
+  td,th{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink2);font-weight:600;font-size:12.5px}
+  .eq{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-family:var(--mono);font-size:13.5px;overflow:auto}
+  ul{padding-left:20px} li{margin:.3em 0}
+  footer{border-top:1px solid var(--line);margin-top:46px;padding:24px 0 56px;color:var(--ink2);font-size:13.5px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><span class="tag">methodology</span>
+<h1>How the circuit is built</h1>
+<p class="sub">The math behind the model, the exact 2025 constants, and the IRS sources every edge is lifted from.</p>
+</div></header>
+<main class="wrap">
+
+<h2>The graph</h2>
+<p>Each line of Form 1040 and Schedules 1&ndash;3 is a node; each line label is a signed operation over earlier lines. Because every reference points to a lower-numbered line, the line numbering is a <strong>topological sort</strong> and the return evaluates in one top-to-bottom pass. The edges are:</p>
+<ul>
+  <li><strong>Aggregation</strong> (<code>&Sigma;</code>): pure sums, all parents <code>+1</code> &mdash; lines 9, 14, 18, 21, 24, 25d, 32, 33.</li>
+  <li><strong>Signed difference</strong>: <code>line 11a = 9 &minus; 10</code>, <code>15 = 11b &minus; 14</code>, <code>22 = max(18 &minus; 21, 0)</code> &mdash; where deductions and credits enter as negative parents, several with a <code>max(&middot;,0)</code> clamp.</li>
+  <li><strong>One nonlinear edge</strong>: <code>tax = brackets(taxable)</code>, a convex piecewise-linear map (the Tax Table / Tax Computation Worksheet).</li>
+  <li><strong>Cross-form identity</strong>: schedule subtotals routed onto a 1040 line (coefficient 1).</li>
+</ul>
+
+<h2>The two fixed points</h2>
+<p>Two pairs of lines reference each other and cannot be ordered away. Each is solved by iterating a self-map <code>x &larr; G(x)</code> to a fixed point.</p>
+
+<h3>SCC #1 &mdash; IRA deduction <code>D</code> &harr; taxable Social Security <code>S</code></h3>
+<p>The Social Security Benefits Worksheet nets the IRA deduction out of provisional income (so larger <code>D</code> &rArr; smaller <code>S</code>); the IRA deduction phases out on modified AGI, which includes <code>S</code> (so larger <code>S</code> &rArr; smaller <code>D</code>). The composed return map has slope</p>
+<div class="eq">G&prime;(S) = r_ss &middot; r_po,&nbsp;&nbsp; r_ss &isin; {0, &frac12;, 0.85},&nbsp; r_po = C/(hi&minus;lo) = 0.7 (single)&nbsp;&rArr;&nbsp; &kappa; = 0.595 &lt; 1</div>
+<p>so <code>G</code> is a contraction (Banach &rArr; unique fixed point, geometric convergence; piecewise-linear &rArr; often exact in a few steps). The 2025 active-participant phase-out band on modified AGI: <span class="mono">$79,000&ndash;$89,000</span> (single/HoH), <span class="mono">$126,000&ndash;$146,000</span> (MFJ, you covered), <span class="mono">$0&ndash;$10,000</span> (MFS) &mdash; <a href="https://www.irs.gov/publications/p590a">Pub. 590-A</a>.</p>
+
+<h3>SCC #2 &mdash; SE-health deduction <code>D</code> &harr; premium tax credit <code>P</code></h3>
+<p>The &sect;162(l) deduction equals premiums minus the credit; the credit (Form 8962) depends on MAGI, which the deduction reduces. The return map <code>H(D) = premiums &minus; PTC(base &minus; D)</code> has slope</p>
+<div class="eq">H&prime;(D) = &minus;(a + a&prime;m),&nbsp;&nbsp; a = applicable percentage &isin; [0, 0.085]&nbsp;&rArr;&nbsp; |&kappa;| &asymp; 0.1</div>
+<p>an even tighter contraction, converging in &le; 9 steps. Resolved by the iterative method of <a href="https://www.irs.gov/publications/p974">Pub. 974</a> (the exact simultaneous form is Rev. Proc. 2014-41).</p>
+
+<h2>Minimizing tax</h2>
+<p>&ldquo;Least tax&rdquo; is <code>min F</code> over the lever variables subject to the contribution caps and eligibility guards. Because the only nonlinearity is the convex bracket function, this is a small <strong>mixed-integer linear program</strong>: the graph&rsquo;s affine edges become linear equality constraints, the lever inputs become continuous decision variables (the Saver&rsquo;s-Credit tier is a binary), and the bracket map becomes a convex piecewise-linear relaxation. The genuinely non-convex parts &mdash; the Tax Table&rsquo;s $50-row rounding and the two cyclic loops &mdash; live <em>outside</em> the linear program (a post-solve reconciliation, and the fixed-point solvers). The on-page calculator uses a fast grid search over the same feasible set.</p>
+
+<h2>2025 constants used</h2>
+<table>
+<tr><th>quantity</th><th>value</th></tr>
+<tr><td>Standard deduction</td><td class="mono">$15,750 S/MFS &middot; $31,500 MFJ/QSS &middot; $23,625 HoH</td></tr>
+<tr><td>Ordinary brackets (single)</td><td class="mono">10/12/22/24/32/35/37% at 0 / 11,925 / 48,475 / 103,350 / 197,300 / 250,525 / 626,350</td></tr>
+<tr><td>Saver&rsquo;s Credit (single)</td><td class="mono">50% &le; $23,750 &middot; 20% &le; $25,750 &middot; 10% &le; $39,500</td></tr>
+<tr><td>IRA / HSA limits (under 50)</td><td class="mono">$7,000 IRA &middot; $4,300 HSA (self-only)</td></tr>
+<tr><td>SS benefits worksheet bases</td><td class="mono">$25,000 / $34,000 (single) &middot; $32,000 / $44,000 (MFJ)</td></tr>
+<tr><td>PTC applicable %</td><td class="mono">0% at 150% FPL &rarr; 8.5% at 400%+ FPL (no cliff, 2025)</td></tr>
+<tr><td>Federal Poverty Line (2024, for 2025 PTC)</td><td class="mono">$15,060 (hh 1) + $5,380 / member</td></tr>
+</table>
+
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://www.irs.gov/pub/irs-pdf/f1040.pdf">Form 1040 (2025)</a> &amp; <a href="https://www.irs.gov/pub/irs-pdf/i1040gi.pdf">Instructions for Form 1040</a> (line arithmetic; Tax Computation, Social Security Benefits, and Standard Deduction worksheets; What&rsquo;s New)</li>
+  <li><a href="https://www.irs.gov/pub/irs-pdf/f1040s1.pdf">Schedule 1</a>, <a href="https://www.irs.gov/pub/irs-pdf/f1040s2.pdf">Schedule 2</a>, <a href="https://www.irs.gov/pub/irs-pdf/f1040s3.pdf">Schedule 3</a></li>
+  <li><a href="https://www.irs.gov/forms-pubs/about-form-8880">Form 8880</a> &mdash; Saver&rsquo;s Credit tiers</li>
+  <li><a href="https://www.irs.gov/publications/p590a">Publication 590-A</a> &mdash; IRA deduction phase-out (SCC #1)</li>
+  <li><a href="https://www.irs.gov/instructions/i8962">Form 8962 instructions</a> &amp; <a href="https://www.irs.gov/pub/irs-drop/rp-24-35.pdf">Rev. Proc. 2024-35</a> &mdash; PTC applicable percentages</li>
+  <li><a href="https://www.irs.gov/publications/p974">Publication 974</a> &mdash; SE-health / premium-tax-credit iterative method (SCC #2)</li>
+  <li><a href="https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines">HHS Poverty Guidelines</a> &mdash; the Federal Poverty Line</li>
+</ul>
+
+<h2>Assumptions &amp; limits</h2>
+<ul>
+  <li>The main calculator assumes the <strong>standard deduction</strong> and (unless &ldquo;active participant&rdquo; is ticked) <strong>full IRA deductibility</strong>; it does not model itemizing, preferential capital-gains rates, the QBI deduction, AMT, or state tax.</li>
+  <li>The SE-health solver uses an annual, single-benchmark shortcut (not Form 8962&rsquo;s month-by-month proration) and approximates the &frac12;-SE-tax term.</li>
+  <li>MAGI add-backs (tax-exempt interest, excluded foreign income, nontaxable SS) are not modeled; fold them into &ldquo;other income&rdquo; if relevant.</li>
+</ul>
+
+<div class="disclaim"><strong>Not tax advice.</strong> An educational model; figures are illustrative and may differ from an actual return. Consult a qualified professional before acting.</div>
+<a class="back" href="index.html">&larr; back to the circuit</a>
+</main>
+<footer><div class="wrap"><p><strong>The 1040 Tax Circuit</strong> &middot; <a href="https://github.com/hh3082/1040-tax-circuit">source on GitHub</a>. Not affiliated with the IRS.</p></div></footer>
+</body>
+</html>
