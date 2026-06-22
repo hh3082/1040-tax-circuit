@@ -96,6 +96,103 @@
 </ul>
 <p>Put together, the marginal cost of the next converted dollar looks like the curve below &mdash; it is computed live from the engine for the inputs you set.</p>
 
+<h2 id="circuit">The circuit</h2>
+<p>The working-age 1040 is a <em>combinational</em> circuit &mdash; a feed-forward graph with two small internal feedback loops. The retirement version is a <strong>closed-loop control system</strong>: a non-convex one-year tax block wrapped in a feedback loop that runs across <em>years</em>. The IRA balance is the state; the Roth conversion is the control you use to bend it.</p>
+
+<div class="svgcard" aria-label="The retirement tax circuit: a non-convex one-year tax block wrapped in a balance feedback loop">
+<svg viewBox="0 0 860 450" width="100%" role="img">
+<title>The retirement tax circuit</title>
+<desc>A feed-forward one-year tax block (with the Social Security torpedo and the IRMAA step) wrapped in a feedback loop across years: the IRA balance is the state, required minimum distributions feed back as forced income, and the Roth conversion is the control input; lifetime tax is minimized by a dynamic program.</desc>
+<defs>
+  <marker id="rah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--ink3)"/></marker>
+  <marker id="rahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--blue)"/></marker>
+  <marker id="raht" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--teal)"/></marker>
+</defs>
+
+<!-- Layer 1: inner per-year tax block -->
+<rect x="16" y="16" width="828" height="168" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="4 4"/>
+<text x="30" y="38" font-size="14" fill="var(--ink2)">Inner block &mdash; one year&rsquo;s tax:  g&#8348; = T(income&#8348;, age&#8348;)</text>
+
+<rect x="30" y="97" width="150" height="56" rx="8" fill="var(--blue-bg)" stroke="var(--blue)"/>
+<text x="105" y="120" text-anchor="middle" font-size="13" font-weight="600" fill="var(--blue)">income&#8348;</text>
+<text x="105" y="138" text-anchor="middle" font-size="11" fill="var(--ink2)">pension + RMD + c&#8348;</text>
+
+<line x1="180" y1="125" x2="360" y2="125" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+<line x1="360" y1="87" x2="360" y2="163" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="360" y1="87" x2="366" y2="87" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="360" y1="163" x2="366" y2="163" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="582" y1="87" x2="582" y2="163" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="576" y1="87" x2="582" y2="87" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="576" y1="125" x2="582" y2="125" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="576" y1="163" x2="582" y2="163" stroke="var(--ink3)" stroke-width="1.5"/>
+<line x1="582" y1="125" x2="612" y2="125" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+
+<rect x="366" y="72" width="210" height="30" rx="6" fill="var(--amber-bg)" stroke="var(--amber)"/>
+<text x="471" y="91" text-anchor="middle" font-size="13" fill="var(--amber)">taxable Social Security</text>
+<rect x="366" y="110" width="210" height="30" rx="6" fill="var(--amber-bg)" stroke="var(--amber)"/>
+<text x="471" y="129" text-anchor="middle" font-size="13" fill="var(--amber)">brackets &middot; gains &middot; NIIT</text>
+<rect x="366" y="148" width="210" height="30" rx="6" fill="var(--red-bg)" stroke="var(--red)"/>
+<text x="471" y="167" text-anchor="middle" font-size="13" fill="var(--red)">IRMAA surcharge</text>
+
+<rect x="612" y="97" width="160" height="56" rx="8" fill="var(--blue-bg)" stroke="var(--blue)"/>
+<text x="692" y="120" text-anchor="middle" font-size="13" font-weight="600" fill="var(--blue)">stage cost g&#8348;</text>
+<text x="692" y="138" text-anchor="middle" font-size="11" fill="var(--ink2)">this year&rsquo;s total tax</text>
+
+<!-- Layer 2: outer feedback loop -->
+<rect x="16" y="196" width="828" height="210" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="4 4"/>
+<text x="30" y="218" font-size="14" fill="var(--ink2)">Outer loop &mdash; the years are coupled by the IRA balance (state feedback)</text>
+
+<rect x="34" y="244" width="150" height="54" rx="8" fill="var(--blue-bg)" stroke="var(--blue)"/>
+<text x="109" y="267" text-anchor="middle" font-size="13" font-weight="600" fill="var(--blue)">balance B&#8348;</text>
+<text x="109" y="285" text-anchor="middle" font-size="11" fill="var(--ink2)">traditional IRA</text>
+
+<line x1="184" y1="271" x2="232" y2="271" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+<rect x="232" y="244" width="176" height="54" rx="8" fill="var(--blue-bg)" stroke="var(--blue)"/>
+<text x="320" y="267" text-anchor="middle" font-size="13" font-weight="600" fill="var(--blue)">RMD&#8348; = B&#8348; &#247; factor</text>
+<text x="320" y="285" text-anchor="middle" font-size="11" fill="var(--ink2)">forced at age &#8805; 73</text>
+
+<rect x="470" y="206" width="150" height="30" rx="6" fill="var(--teal-bg)" stroke="var(--teal)"/>
+<text x="545" y="225" text-anchor="middle" font-size="13" fill="var(--teal)">conversion c&#8348;</text>
+<line x1="545" y1="236" x2="545" y2="258" stroke="var(--teal)" stroke-width="2" marker-end="url(#raht)"/>
+<line x1="408" y1="274" x2="456" y2="281" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+
+<rect x="456" y="258" width="150" height="50" rx="8" fill="var(--surface2)" stroke="var(--line)"/>
+<text x="531" y="281" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">tax block T(&middot;)</text>
+<text x="531" y="298" text-anchor="middle" font-size="11" fill="var(--ink2)">the inner block &#8593;</text>
+
+<text x="627" y="277" text-anchor="middle" font-size="11" fill="var(--ink2)">g&#8348;</text>
+<line x1="606" y1="283" x2="648" y2="283" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+<rect x="648" y="258" width="168" height="50" rx="8" fill="var(--green-bg)" stroke="var(--green)"/>
+<text x="732" y="281" text-anchor="middle" font-size="13" font-weight="600" fill="var(--green)">min &#931; &#947;&#7511; g&#8348;</text>
+<text x="732" y="298" text-anchor="middle" font-size="11" fill="var(--ink2)">dynamic program</text>
+
+<line x1="109" y1="298" x2="109" y2="349" stroke="var(--ink3)" stroke-width="1.5"/>
+<circle cx="109" cy="356" r="7" fill="var(--surface)" stroke="var(--ink3)" stroke-width="1.5"/>
+<text x="109" y="360" text-anchor="middle" font-size="12" fill="var(--ink2)">&#8722;</text>
+<text x="182" y="344" text-anchor="middle" font-size="11" fill="var(--ink2)">&#8722; RMD&#8348; &#8722; c&#8348;</text>
+<line x1="116" y1="356" x2="190" y2="356" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+<rect x="190" y="340" width="104" height="32" rx="6" fill="var(--surface2)" stroke="var(--line)"/>
+<text x="242" y="360" text-anchor="middle" font-size="13" fill="var(--ink)">&#215; (1+g)</text>
+<line x1="294" y1="356" x2="322" y2="356" stroke="var(--ink3)" stroke-width="1.5" marker-end="url(#rah)"/>
+<rect x="322" y="340" width="84" height="32" rx="6" fill="var(--surface2)" stroke="var(--line)"/>
+<text x="364" y="360" text-anchor="middle" font-size="13" fill="var(--ink)">z&#8315;&#185;</text>
+
+<path d="M406 356 L432 356 L432 388 L24 388 L24 271 L34 271" fill="none" stroke="var(--blue)" stroke-width="2.5" marker-end="url(#rahb)"/>
+<text x="210" y="382" text-anchor="middle" font-size="11" fill="var(--ink2)">B&#8348;&#8330;&#8321;  (next year)</text>
+
+<!-- legend -->
+<rect x="24" y="418" width="16" height="11" rx="2" fill="var(--amber-bg)" stroke="var(--amber)"/>
+<text x="46" y="428" font-size="11" fill="var(--ink2)">non-convex</text>
+<rect x="150" y="418" width="16" height="11" rx="2" fill="var(--red-bg)" stroke="var(--red)"/>
+<text x="172" y="428" font-size="11" fill="var(--ink2)">discontinuous (integer)</text>
+<line x1="350" y1="423" x2="368" y2="423" stroke="var(--blue)" stroke-width="2.5"/>
+<text x="374" y="428" font-size="11" fill="var(--ink2)">feedback loop (state B&#8348;)</text>
+<line x1="560" y1="423" x2="578" y2="423" stroke="var(--teal)" stroke-width="2.5"/>
+<text x="584" y="428" font-size="11" fill="var(--ink2)">control / lever</text>
+</svg>
+</div>
+<p class="sub" style="font-size:14px"><strong>Inner block</strong> (top): one year&rsquo;s tax is feed-forward &mdash; income and Social Security pass through the SS worksheet, the brackets, and the IRMAA step to a stage cost. Three edges are the troublemakers: the <span style="color:var(--amber)">Social Security torpedo and gains stacking are non-convex</span>, and the <span style="color:var(--red)">IRMAA step is discontinuous</span> &mdash; which is why one year is a MILP. <strong>Outer loop</strong> (bottom): the balance <span class="mono">B&#8348;</span> is a state register; required distributions feed back as forced income, the conversion <span class="mono">c&#8348;</span> is the control that drains the balance in low-rate years, and growth <span class="mono">&times;(1+g)</span> with a one-year delay <span class="mono">z&#8315;&#185;</span> close the loop. Minimizing lifetime tax over that loop is the dynamic program. (In practice IRMAA reacts to MAGI from <em>two</em> years prior &mdash; a <span class="mono">z&#8315;&sup2;</span> delay on that branch; the model uses same-year for clarity.)</p>
+
 <h2 id="calc">Run the retirement circuit</h2>
 <div class="card">
   <div class="grid g3">
