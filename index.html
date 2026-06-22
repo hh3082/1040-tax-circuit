@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The 1040 Tax Circuit — how a tax return computes, and how to lower your effective rate</title>
+<meta name="description" content="An educational model of Form 1040 as a computation circuit: signed edges, two feedback loops, and the levers that reduce your effective federal tax rate. Includes a live calculator.">
+<style>
+  :root{
+    --bg:#fbfaf7; --surface:#ffffff; --surface2:#f3f1ea; --line:#e6e3da;
+    --ink:#1c1c1a; --ink2:#5f5e5a; --ink3:#8a8880;
+    --blue:#185fa5; --blue-bg:#e6f1fb; --teal:#0f6e56; --teal-bg:#e1f5ee;
+    --amber:#854f0b; --amber-bg:#faeeda; --red:#a32d2d; --red-bg:#fcebeb;
+    --green:#3b6d11; --green-bg:#eaf3de; --radius:12px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#1a1916;--surface:#222019;--surface2:#2b2922;--line:#3a382f;
+      --ink:#ece9e0;--ink2:#b4b2a9;--ink3:#83817a;
+      --blue:#85b7eb;--blue-bg:#11233a;--teal:#5dcaa5;--teal-bg:#0b261f;
+      --amber:#ef9f27;--amber-bg:#2e2410;--red:#f09595;--red-bg:#2e1414;--green:#97c459;--green-bg:#1a2810;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:840px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+  h1{font-size:34px;font-weight:600;letter-spacing:-.02em;margin:.2em 0 .1em;line-height:1.15}
+  h2{font-size:23px;font-weight:600;letter-spacing:-.01em;margin:2.2em 0 .5em}
+  h3{font-size:17px;font-weight:600;margin:1.4em 0 .3em}
+  p{margin:.6em 0;color:var(--ink)}
+  .lede{font-size:19px;color:var(--ink2);margin:.4em 0 1em}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  .sub{color:var(--ink2)}
+  .disclaim{background:var(--amber-bg);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);
+    color:var(--amber);border-radius:10px;padding:11px 15px;font-size:13.5px;margin:18px 0}
+  header.hero{padding:46px 0 8px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:12.5px;font-weight:600;color:var(--teal);background:var(--teal-bg);
+    padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:14px 0}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:7px}
+  .p-blue{background:var(--blue-bg);color:var(--blue)} .p-amber{background:var(--amber-bg);color:var(--amber)}
+  .p-red{background:var(--red-bg);color:var(--red)} .p-teal{background:var(--teal-bg);color:var(--teal)}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:0 0 4px}
+  input[type=number],select{width:100%;font-size:15px;font-family:var(--sans);padding:9px 11px;border:1px solid var(--line);
+    border-radius:9px;background:var(--surface);color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 18%,transparent)}
+  .field{margin:0 0 10px}
+  .metric{background:var(--surface2);border-radius:10px;padding:13px 15px}
+  .metric .k{font-size:12.5px;color:var(--ink2)} .metric .v{font-size:25px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+  .v.good{color:var(--teal)} .v.bad{color:var(--red)}
+  button{font-family:var(--sans);font-size:15px;font-weight:600;padding:11px 18px;border-radius:10px;border:1px solid var(--blue);
+    background:var(--blue);color:#fff;cursor:pointer;transition:transform .08s}
+  button:active{transform:scale(.985)} button.ghost{background:transparent;color:var(--blue)}
+  .opt-out{background:var(--green-bg);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:10px;padding:14px 16px;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:.4em 0}
+  td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--ink2);font-weight:600;font-size:12.5px}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  .barwrap{height:10px;background:var(--surface2);border-radius:6px;overflow:hidden;margin-top:6px}
+  .bar{height:100%;border-radius:6px;background:var(--blue)} .bar.opt{background:var(--teal)}
+  footer{border-top:1px solid var(--line);margin-top:48px;padding:26px 0 60px;color:var(--ink2);font-size:13.5px}
+  .svgcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px;overflow:auto}
+  ul{padding-left:20px} li{margin:.25em 0}
+  .kbd{font-family:var(--mono);background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:.88em}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <span class="tag">educational tax model</span>
+  <h1>Your Form 1040 is a circuit.</h1>
+  <p class="lede">A tax return is a directed graph of signed arithmetic with two feedback loops. Once you see it that way, &ldquo;lowering your effective rate&rdquo; becomes a concrete question: which inputs are <em>levers</em>, and how far do they move the output. This page explains the circuit and lets you run it.</p>
+  <div class="disclaim"><strong>Not tax advice.</strong> This is an educational model of the 2025 Form 1040 with simplified assumptions (see <a href="#method">Methodology</a>). Figures are illustrative and may differ from your actual return. Consult a qualified tax professional before acting.</div>
+</div></header>
+
+<main class="wrap">
+
+<h2>The shape of the computation</h2>
+<p>Number the lines of Form 1040 and Schedules 1&ndash;3 and you get a <strong>directed acyclic graph</strong>: every line references only earlier-numbered lines, so the form fills top-to-bottom in one pass. The line numbering <em>is</em> a topological sort. Each edge carries a signed operation:</p>
+<ul>
+  <li><span class="pill p-blue">&Sigma; add</span> income lines sum into <code>line 9</code> (every parent <code>+1</code>).</li>
+  <li><span class="pill p-amber">&minus; subtract</span> adjustments, the deduction, and credits enter as <em>negative</em> parents (<code>AGI = 9 &minus; 10</code>, <code>taxable = 11 &minus; 14</code>).</li>
+  <li><span class="pill p-red">&times; rate</span> exactly one nonlinear edge: <code>taxable &rarr; tax</code>, the convex piecewise-linear bracket function.</li>
+  <li><span class="pill p-teal">clamp</span> credits and refund/owe carry <code>max(&middot;,0)</code> limiters.</li>
+</ul>
+
+<div class="svgcard" aria-label="Signal-flow diagram of the tax circuit">
+<svg viewBox="0 0 820 250" width="100%" font-family="var(--sans)" role="img">
+  <title>The tax return as a signal-flow circuit</title>
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--ink3)"/></marker></defs>
+  <g stroke="var(--ink3)" stroke-width="1.6" fill="none">
+    <line x1="150" y1="60" x2="252" y2="60" marker-end="url(#ar)"/>
+    <line x1="288" y1="60" x2="372" y2="60" marker-end="url(#ar)"/>
+    <line x1="408" y1="60" x2="452" y2="60" marker-end="url(#ar)"/>
+    <line x1="540" y1="60" x2="588" y2="60" marker-end="url(#ar)"/>
+    <line x1="624" y1="60" x2="676" y2="60" marker-end="url(#ar)"/>
+    <line x1="130" y1="150" x2="130" y2="76" marker-end="url(#ar)"/>
+    <line x1="270" y1="150" x2="270" y2="76" marker-end="url(#ar)"/>
+    <line x1="390" y1="150" x2="390" y2="76" marker-end="url(#ar)"/>
+    <line x1="606" y1="150" x2="606" y2="76" marker-end="url(#ar)"/>
+  </g>
+  <g font-size="11" fill="var(--ink3)" text-anchor="middle">
+    <text x="200" y="52">income&middot;9</text><text x="330" y="52">AGI&middot;11</text><text x="430" y="52">taxable&middot;15</text><text x="566" y="52">tax&middot;16</text><text x="650" y="52">&middot;24</text>
+  </g>
+  <g text-anchor="middle" font-size="13" font-weight="600">
+    <circle cx="130" cy="60" r="15" fill="var(--surface)" stroke="var(--ink3)" stroke-width="1.5"/><text x="130" y="64" fill="var(--ink2)">&Sigma;</text>
+    <circle cx="270" cy="60" r="15" fill="var(--surface)" stroke="var(--ink3)" stroke-width="1.5"/><text x="270" y="64" fill="var(--ink2)">&minus;</text>
+    <circle cx="390" cy="60" r="15" fill="var(--surface)" stroke="var(--ink3)" stroke-width="1.5"/><text x="390" y="64" fill="var(--ink2)">&minus;</text>
+    <rect x="452" y="44" width="88" height="32" rx="7" fill="var(--blue-bg)" stroke="var(--blue)"/><text x="496" y="64" fill="var(--blue)" font-size="12">Tax f(&middot;)</text>
+    <circle cx="606" cy="60" r="15" fill="var(--surface)" stroke="var(--ink3)" stroke-width="1.5"/><text x="606" y="64" fill="var(--ink2)">&minus;</text>
+    <rect x="676" y="42" width="120" height="36" rx="8" fill="var(--green-bg)" stroke="var(--green)"/><text x="736" y="64" fill="var(--green)" font-size="12">refund / owe</text>
+  </g>
+  <g text-anchor="middle" font-size="11">
+    <rect x="60" y="150" width="140" height="50" rx="8" fill="var(--red-bg)" stroke="var(--red)"/><text x="130" y="170" fill="var(--red)" font-weight="600">SS &harr; IRA</text><text x="130" y="186" fill="var(--red)" font-size="9.5">feedback loop</text>
+    <rect x="210" y="150" width="140" height="50" rx="8" fill="var(--red-bg)" stroke="var(--red)"/><text x="280" y="170" fill="var(--red)" font-weight="600">SE-health &harr; PTC</text><text x="280" y="186" fill="var(--red)" font-size="9.5">feedback loop</text>
+    <rect x="330" y="150" width="120" height="40" rx="8" fill="var(--surface2)" stroke="var(--line)"/><text x="390" y="174" fill="var(--ink2)">std deduction</text>
+    <rect x="546" y="150" width="120" height="40" rx="8" fill="var(--surface2)" stroke="var(--line)"/><text x="606" y="168" fill="var(--ink2)">Saver credit</text><text x="606" y="182" fill="var(--ink3)" font-size="9">clamp &ge; 0</text>
+  </g>
+  <g text-anchor="middle" font-size="10.5" font-weight="600">
+    <rect x="36" y="22" width="58" height="20" rx="10" fill="var(--blue-bg)"/><text x="65" y="36" fill="var(--blue)">inputs</text>
+    <rect x="36" y="214" width="64" height="20" rx="10" fill="var(--amber-bg)"/><text x="68" y="228" fill="var(--amber)">levers</text>
+  </g>
+</svg>
+</div>
+<p class="sub" style="font-size:13.5px">The forward path is a summing chain; the two red blocks are the only cycles &mdash; each a pair of lines that reference each other, iterated to a fixed point. Everything else is a single top-to-bottom pass.</p>
+
+<h2>Where the levers are</h2>
+<p>Most inputs are facts (your wages, your withholding). A handful are <strong>levers</strong> &mdash; choices that move the output without changing your underlying income. Their value is the <em>marginal effect on tax</em>, read straight off the signed edges:</p>
+<div class="grid g2">
+  <div class="card"><span class="pill p-amber">deduction</span><h3 style="margin-top:8px">Standard vs. itemized</h3><p class="sub" style="font-size:14px">Take the larger. With only a W-2 and no big deductible expenses, the standard deduction (<span class="mono">$15,750 single / $31,500 MFJ</span> for 2025) almost always wins.</p></div>
+  <div class="card"><span class="pill p-amber">adjustment</span><h3 style="margin-top:8px">Traditional IRA / HSA</h3><p class="sub" style="font-size:14px">Deductible contributions lower AGI dollar-for-dollar, so each dollar saves your <em>marginal rate</em> (10&ndash;37&cent; on the dollar). Bounded by the contribution caps.</p></div>
+  <div class="card"><span class="pill p-teal">credit</span><h3 style="margin-top:8px">Saver&rsquo;s Credit</h3><p class="sub" style="font-size:14px">At lower incomes a retirement contribution also earns a 50/20/10% nonrefundable credit &mdash; so the first dollars can return <span class="mono">~60&cent;</span> each (bracket + credit). It phases out by ~$40k (single).</p></div>
+  <div class="card"><span class="pill p-blue">status</span><h3 style="margin-top:8px">Filing status</h3><p class="sub" style="font-size:14px">Sets the standard deduction and the bracket cutoffs. A fact for most, but it indexes every threshold in the circuit.</p></div>
+</div>
+
+<h2 id="calc">Run the circuit</h2>
+<p>Enter your numbers. The page computes your federal income tax and effective rate live, then the <strong>optimizer</strong> finds the IRA/HSA contribution that minimizes your tax &mdash; the least-tax lever vector.</p>
+
+<div class="card">
+  <div class="grid g3">
+    <div class="field"><label for="status">Filing status</label>
+      <select id="status"><option value="single">Single</option><option value="mfj">Married filing jointly</option><option value="hoh">Head of household</option><option value="mfs">Married filing separately</option><option value="qss">Qualifying surviving spouse</option></select></div>
+    <div class="field"><label for="wages">Wages (W-2 box 1)</label><input id="wages" type="number" value="62000" min="0" step="100"></div>
+    <div class="field"><label for="withholding">Federal tax withheld (box 2)</label><input id="withholding" type="number" value="6400" min="0" step="50"></div>
+  </div>
+  <div class="grid g3">
+    <div class="field"><label for="interest">Taxable interest</label><input id="interest" type="number" value="300" min="0" step="50"></div>
+    <div class="field"><label for="dividends">Ordinary dividends</label><input id="dividends" type="number" value="0" min="0" step="50"></div>
+    <div class="field"><label for="pension">IRA / pension distributions</label><input id="pension" type="number" value="0" min="0" step="100"></div>
+  </div>
+  <div class="grid g3">
+    <div class="field"><label for="ssben">Social Security benefits</label><input id="ssben" type="number" value="0" min="0" step="100"></div>
+    <div class="field"><label for="ira">Traditional IRA contribution</label><input id="ira" type="number" value="0" min="0" step="100"></div>
+    <div class="field"><label for="hsa">HSA contribution</label><input id="hsa" type="number" value="0" min="0" step="100"></div>
+  </div>
+
+  <div class="grid g3" style="margin-top:6px">
+    <div class="metric"><div class="k">Taxable income (line 15)</div><div class="v" id="o_taxable">&mdash;</div></div>
+    <div class="metric"><div class="k">Federal income tax (line 24)</div><div class="v" id="o_tax">&mdash;</div></div>
+    <div class="metric"><div class="k">Effective rate</div><div class="v" id="o_eff">&mdash;</div><div class="barwrap"><div class="bar" id="o_bar" style="width:0%"></div></div></div>
+  </div>
+  <p id="o_settle" class="sub" style="margin:10px 2px 0;font-size:14px"></p>
+
+  <div style="margin-top:14px"><button id="optbtn">Optimize my levers &rarr;</button></div>
+  <div class="opt-out" id="opt" style="display:none"></div>
+</div>
+
+<h2 id="method">How it works (the math)</h2>
+<p>The forward graph is a function <code>tax = F(inputs, levers)</code>. Two refinements make it exact:</p>
+<h3>The two feedback loops are fixed points</h3>
+<p>Two pairs of lines reference each other and cannot be ordered away: the <strong>IRA deduction &harr; taxable Social Security</strong> coupling, and the <strong>self-employed-health deduction &harr; premium tax credit</strong> coupling. Each is solved by iterating a map <code>x &larr; G(x)</code> to a fixed point. Both converge because the map&rsquo;s slope is a <em>product of tax rates &lt; 1</em> &mdash; a contraction (loop gain below 1), so the iteration is stable and lands in a handful of steps. Contract those two loops and what remains is a clean DAG.</p>
+<h3>Minimizing tax is an optimization over the levers</h3>
+<p>&ldquo;Least tax&rdquo; is <code>min F</code> over the lever variables subject to the contribution caps and eligibility guards. Because the only nonlinearity is the convex bracket function, this is a small mixed-integer linear program: the graph&rsquo;s affine edges become linear constraints, the lever inputs become decision variables, and the bracket map becomes a convex piecewise-linear relaxation. The calculator above uses a fast grid search over the same feasible set.</p>
+
+<h3>Sources &amp; assumptions</h3>
+<ul>
+  <li>2025 Form 1040 &amp; Schedules 1&ndash;3 line arithmetic; the &ldquo;Keep for Your Records&rdquo; worksheets (Tax Computation, Social Security Benefits, Standard Deduction).</li>
+  <li>2025 standard deduction and rate schedule; Saver&rsquo;s Credit (Form 8880) tiers; IRA phase-out (Pub. 590-A); premium tax credit applicable percentages (Rev. Proc. 2024-35, Form 8962); SE-health &harr; PTC iteration (Pub. 974).</li>
+  <li><strong>Simplifications:</strong> the calculator assumes the standard deduction, full IRA deductibility (no active-participant phase-out), and no capital-gains preferential rates; the two fixed-point loops are documented but not run inside this basic calculator. These are exactly the edge cases the full model&rsquo;s fixed-point solvers handle.</li>
+</ul>
+
+</main>
+
+<footer><div class="wrap">
+  <p><strong>The 1040 Tax Circuit</strong> &mdash; an educational model. Built to explain how a tax return computes and where its degrees of freedom are. Not affiliated with the IRS. <strong>Not tax, legal, or financial advice.</strong></p>
+  <p class="sub">No data leaves your browser; all computation runs locally on this page.</p>
+</div></footer>
+
+<script>
+const BRACKETS={
+ single:[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]],
+ mfj:[[0,.10],[23850,.12],[96950,.22],[206700,.24],[394600,.32],[501050,.35],[751600,.37]],
+ qss:[[0,.10],[23850,.12],[96950,.22],[206700,.24],[394600,.32],[501050,.35],[751600,.37]],
+ hoh:[[0,.10],[17000,.12],[64850,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]],
+ mfs:[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[375800,.37]]};
+const STD={single:15750,mfs:15750,mfj:31500,qss:31500,hoh:23625};
+const SAVER={single:[[23750,.5],[25750,.2],[39500,.1]],mfs:[[23750,.5],[25750,.2],[39500,.1]],
+ hoh:[[35625,.5],[38625,.2],[59250,.1]],mfj:[[47500,.5],[51500,.2],[79000,.1]],qss:[[47500,.5],[51500,.2],[79000,.1]]};
+const IRA_LIMIT=7000, HSA_LIMIT=4300;
+function bracketTax(ti,st){const b=BRACKETS[st];let t=0;for(let i=0;i<b.length;i++){const nx=i+1<b.length?b[i+1][0]:Infinity;if(ti>b[i][0])t+=(Math.min(ti,nx)-b[i][0])*b[i][1];}return t;}
+function tax(ti,st){ti=Math.max(ti,0);let base=ti<5?ti:Math.floor(ti/50)*50+25;if(ti>=100000)base=ti;return Math.round(bracketTax(base,st));}
+function ssTaxable(ss,other,st){if(ss<=0)return 0;const[b1,b2]=(st==='mfj'||st==='qss')?[32000,44000]:[25000,34000];
+ const prov=other+0.5*ss;if(prov<=b1)return 0;if(prov<=b2)return Math.round(Math.min(0.5*ss,0.5*(prov-b1)));
+ const lower=Math.min(0.5*ss,0.5*(b2-b1));return Math.round(Math.min(0.85*ss,0.85*(prov-b2)+lower));}
+function saverCredit(agi,st,contrib){let r=0;for(const[cut,rate]of SAVER[st]){if(agi<=cut){r=rate;break;}}return Math.round(r*Math.min(contrib,2000));}
+function compute(inp){
+ const st=inp.status;
+ const other=inp.wages+inp.interest+inp.dividends+inp.pension;       // non-SS income
+ const adj=Math.min(inp.ira,IRA_LIMIT)+Math.min(inp.hsa,HSA_LIMIT);  // above-the-line adjustments
+ const ssTax=ssTaxable(inp.ssben, other-adj, st);                    // SS worksheet nets adjustments
+ const totalIncome=other+ssTax;
+ const agi=totalIncome-adj;
+ const taxable=Math.max(agi-STD[st],0);
+ const t16=tax(taxable,st);
+ const saver=Math.min(saverCredit(agi,st,Math.min(inp.ira,IRA_LIMIT)),t16);
+ const total=Math.max(t16-saver,0);
+ const eff=totalIncome>0?total/totalIncome:0;
+ return {totalIncome,agi,taxable,t16,saver,total,eff,
+   refund:Math.max(inp.withholding-total,0),owe:Math.max(total-inp.withholding,0)};
+}
+function readInputs(){return {status:status.value,
+ wages:+wages.value||0,withholding:+withholding.value||0,interest:+interest.value||0,
+ dividends:+dividends.value||0,pension:+pension.value||0,ssben:+ssben.value||0,
+ ira:+ira.value||0,hsa:+hsa.value||0};}
+const $=id=>document.getElementById(id);
+const usd=x=>'$'+Math.round(x).toLocaleString();
+function render(){
+ const r=compute(readInputs());
+ $('o_taxable').textContent=usd(r.taxable);
+ $('o_tax').textContent=usd(r.total);
+ $('o_eff').textContent=(100*r.eff).toFixed(1)+'%';
+ $('o_bar').style.width=Math.min(100,100*r.eff/0.37)+'%';
+ $('o_settle').innerHTML = r.refund>0
+   ? 'Withholding exceeds tax &rarr; <strong style="color:var(--teal)">refund '+usd(r.refund)+'</strong>.'
+   : (r.owe>0 ? 'Tax exceeds withholding &rarr; <strong style="color:var(--red)">balance due '+usd(r.owe)+'</strong>.'
+              : 'Withholding exactly covers the tax.');
+ $('opt').style.display='none';
+}
+function optimize(){
+ const base=readInputs(); const st=base.status;
+ const iraCap=Math.min(IRA_LIMIT, Math.max(0,base.wages)); // earned-income limited
+ let best=null;
+ for(let i=0;i<=iraCap;i+=50) for(let h=0;h<=HSA_LIMIT;h+=100){
+   const r=compute({...base,ira:i,hsa:h});
+   const key=r.total*1e7+(i+h);                 // min tax, then min contribution
+   if(best===null||key<best.key) best={key,ira:i,hsa:h,r};
+ }
+ const cur=compute(base);
+ const saved=cur.total-best.r.total;
+ const el=$('opt');el.style.display='block';
+ el.innerHTML='<div style="font-weight:600;font-size:15px;margin-bottom:6px;color:var(--green)">Least-tax lever vector</div>'+
+   '<table><tr><th>lever</th><th class="num">amount</th></tr>'+
+   '<tr><td>Traditional IRA contribution</td><td class="num">'+usd(best.ira)+'</td></tr>'+
+   '<tr><td>HSA contribution</td><td class="num">'+usd(best.hsa)+'</td></tr></table>'+
+   '<table style="margin-top:8px"><tr><td>federal tax</td><td class="num">'+usd(cur.total)+' &rarr; <strong>'+usd(best.r.total)+'</strong></td></tr>'+
+   '<tr><td>effective rate</td><td class="num">'+(100*cur.eff).toFixed(1)+'% &rarr; <strong>'+(100*best.r.eff).toFixed(1)+'%</strong></td></tr>'+
+   '<tr><td>tax saved</td><td class="num" style="color:var(--green);font-weight:600">'+usd(saved)+'</td></tr></table>'+
+   (best.r.saver>0?'<p class="sub" style="font-size:13px;margin:8px 0 0">Includes a Saver&rsquo;s Credit of '+usd(best.r.saver)+' &mdash; a refund of real money, not just a deferral.</p>':'')+
+   '<p class="sub" style="font-size:12.5px;margin:8px 0 0">Contributions move money into tax-advantaged accounts (still yours); the IRA is limited to your earned income and the $7,000 cap, the HSA to $4,300 (2025, self-only, under 50).</p>';
+}
+['status','wages','withholding','interest','dividends','pension','ssben','ira','hsa'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',render);});
+document.getElementById('optbtn').addEventListener('click',optimize);
+render();
+</script>
+</body>
+</html>
