@@ -283,10 +283,13 @@
 <h2 id="method">How it works</h2>
 <p>The forward graph is a function <code>tax = F(inputs, levers)</code>. The two feedback loops are solved by iterating a map to a fixed point &mdash; each a contraction because its slope is a product of tax rates below 1. &ldquo;Least tax&rdquo; is then an optimization over the lever variables: a small mixed-integer linear program whose constraints are the graph&rsquo;s affine edges, with the convex bracket function as the one nonlinearity. The full derivation, the exact constants, and the IRS sources are on the <a href="methodology.html"><strong>Methodology &amp; sources</strong></a> page.</p>
 
+<h2 id="business">Beyond the 1040 — your small business</h2>
+<p>The same circuit idea extends to a small business: mostly pass-throughs that feed <em>this</em> 1040, plus new feedback loops (the self-employed retirement and SE-health fixed points, the QBI deduction, and the S-corp reasonable-comp trade-off). Try the <strong><a href="business.html">self-employed circuit and the S-corp reasonable-compensation optimizer &rarr;</a></strong></p>
+
 </main>
 
 <footer><div class="wrap">
-  <p><strong>The 1040 Tax Circuit</strong> &mdash; an educational model. <a href="methodology.html">Methodology &amp; sources</a> &middot; <a href="https://github.com/hh3082/1040-tax-circuit">source on GitHub</a>. Not affiliated with the IRS. <strong>Not tax, legal, or financial advice.</strong></p>
+  <p><strong>The 1040 Tax Circuit</strong> &mdash; an educational model. <a href="methodology.html">Methodology &amp; sources</a> &middot; <a href="business.html">small business</a> &middot; <a href="https://github.com/hh3082/1040-tax-circuit">source on GitHub</a>. Not affiliated with the IRS. <strong>Not tax, legal, or financial advice.</strong></p>
   <p class="sub">No data leaves your browser; all computation runs locally on this page.</p>
 </div></footer>
 

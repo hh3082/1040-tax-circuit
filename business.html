@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Small business — extending the tax circuit | The 1040 Tax Circuit</title>
+<meta name="description" content="The tax-circuit idea applied to a small business: a self-employed (Schedule C) circuit and an S-corp reasonable-compensation optimizer, with live calculators and the new feedback loops.">
+<style>
+  :root{--bg:#fbfaf7;--surface:#fff;--surface2:#f3f1ea;--line:#e6e3da;--ink:#1c1c1a;--ink2:#5f5e5a;--ink3:#8a8880;
+    --blue:#185fa5;--blue-bg:#e6f1fb;--teal:#0f6e56;--teal-bg:#e1f5ee;--amber:#854f0b;--amber-bg:#faeeda;--red:#a32d2d;--red-bg:#fcebeb;
+    --green:#3b6d11;--green-bg:#eaf3de;--radius:12px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  @media (prefers-color-scheme: dark){:root{--bg:#1a1916;--surface:#222019;--surface2:#2b2922;--line:#3a382f;--ink:#ece9e0;--ink2:#b4b2a9;--ink3:#83817a;
+    --blue:#85b7eb;--blue-bg:#11233a;--teal:#5dcaa5;--teal-bg:#0b261f;--amber:#ef9f27;--amber-bg:#2e2410;--red:#f09595;--red-bg:#2e1414;--green:#97c459;--green-bg:#1a2810;}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+  h1{font-size:32px;font-weight:600;letter-spacing:-.02em;margin:.2em 0 .1em;line-height:1.15}
+  h2{font-size:23px;font-weight:600;letter-spacing:-.01em;margin:2.2em 0 .5em}
+  h3{font-size:17px;font-weight:600;margin:1.3em 0 .3em}
+  p{margin:.6em 0} .lede{font-size:18px;color:var(--ink2);margin:.4em 0 1em}
+  code,.mono{font-family:var(--mono);font-size:.92em} .sub{color:var(--ink2)}
+  .tag{display:inline-block;font-size:12.5px;font-weight:600;color:var(--teal);background:var(--teal-bg);padding:3px 11px;border-radius:20px}
+  .disclaim{background:var(--amber-bg);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);color:var(--amber);border-radius:10px;padding:11px 15px;font-size:13.5px;margin:18px 0}
+  header.hero{padding:40px 0 8px;border-bottom:1px solid var(--line)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:14px 0}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:7px}
+  .p-red{background:var(--red-bg);color:var(--red)} .p-teal{background:var(--teal-bg);color:var(--teal)} .p-amber{background:var(--amber-bg);color:var(--amber)}
+  .grid{display:grid;gap:12px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:0 0 4px}
+  input[type=number],select{width:100%;font-size:15px;font-family:var(--sans);padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 18%,transparent)}
+  .field{margin:0 0 10px}
+  .metric{background:var(--surface2);border-radius:10px;padding:12px 14px} .metric .k{font-size:12.5px;color:var(--ink2)} .metric .v{font-size:23px;font-weight:600;margin-top:2px}
+  button{font-family:var(--sans);font-size:15px;font-weight:600;padding:11px 18px;border-radius:10px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer}
+  button:active{transform:scale(.985)}
+  .out{background:var(--green-bg);border:1px solid color-mix(in srgb,var(--green) 35%,transparent);border-radius:10px;padding:14px 16px;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:.3em 0} td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td.num,th.num{text-align:right;font-family:var(--mono)} th{color:var(--ink2);font-weight:600;font-size:12.5px}
+  .svgcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;overflow:auto;margin:14px 0}
+  ul{padding-left:20px} li{margin:.28em 0}
+  footer{border-top:1px solid var(--line);margin-top:46px;padding:24px 0 56px;color:var(--ink2);font-size:13.5px}
+  .nav{font-size:14px;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <div class="nav"><a href="index.html">&larr; the 1040 circuit</a></div>
+  <span class="tag">extending the circuit</span>
+  <h1>Your small business is a circuit too.</h1>
+  <p class="lede">Most small-business forms are <em>feeders</em> into the personal-return circuit &mdash; a Schedule C net or a K-1 that becomes an input node on your 1040 &mdash; with a few <em>new</em> feedback loops. Here is the same idea applied: a self-employed circuit, and the S-corp reasonable-compensation optimization, both runnable.</p>
+  <div class="disclaim"><strong>Not tax advice.</strong> An educational model with simplified 2025 assumptions (non-SSTB, sole prop has no W-2 wages/UBIA, the Form 8995-A wage limit and §199A phase-in approximated). Figures are illustrative; reasonable compensation is a facts-and-circumstances legal standard. Consult a professional.</div>
+</div></header>
+
+<main class="wrap">
+
+<h2>The form map</h2>
+<p>The ecosystem forks on <strong>entity type</strong>. Three of the four are pass-throughs whose output lands on your 1040; only the C-corp is its own taxpayer.</p>
+<div class="svgcard" aria-label="Small-business tax forms feeding the 1040 circuit">
+<svg viewBox="0 0 820 430" width="100%" role="img">
+  <title>Small-business tax forms as a circuit feeding the personal 1040</title>
+  <defs><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--ink3)"/></marker></defs>
+  <text x="20" y="20" font-size="10.5" fill="var(--ink3)">shared sub-forms (any entity): 4562 depreciation/§179 · 8829 home office · 8995 QBI · 3800 credits · 4797 asset sales · 8990 interest</text>
+  <g stroke="var(--ink3)" stroke-width="1.3" fill="none">
+    <line x1="110" y1="72" x2="110" y2="96" marker-end="url(#sa)"/><line x1="310" y1="72" x2="310" y2="96" marker-end="url(#sa)"/>
+    <line x1="510" y1="72" x2="510" y2="96" marker-end="url(#sa)"/><line x1="700" y1="72" x2="700" y2="96" marker-end="url(#sa)"/>
+    <line x1="310" y1="126" x2="310" y2="148" marker-end="url(#sa)"/><line x1="510" y1="126" x2="510" y2="148" marker-end="url(#sa)"/>
+    <line x1="110" y1="126" x2="250" y2="248" marker-end="url(#sa)"/><line x1="310" y1="178" x2="320" y2="248" marker-end="url(#sa)"/>
+    <line x1="510" y1="178" x2="430" y2="248" marker-end="url(#sa)"/><line x1="700" y1="126" x2="700" y2="148" marker-end="url(#sa)"/></g>
+  <path d="M700,180 C700,230 540,250 490,254" stroke="var(--ink3)" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#sa)"/>
+  <text x="610" y="232" font-size="9" fill="var(--ink3)">dividends → double tax</text>
+  <g text-anchor="middle" font-size="11">
+    <g><rect x="40" y="44" width="140" height="28" rx="6" fill="var(--blue-bg)" stroke="var(--blue)"/><text x="110" y="62" fill="var(--blue)">sole prop / SMLLC</text></g>
+    <g><rect x="240" y="44" width="140" height="28" rx="6" fill="var(--blue-bg)" stroke="var(--blue)"/><text x="310" y="62" fill="var(--blue)">partnership / MMLLC</text></g>
+    <g><rect x="440" y="44" width="140" height="28" rx="6" fill="var(--blue-bg)" stroke="var(--blue)"/><text x="510" y="62" fill="var(--blue)">S corporation</text></g>
+    <g><rect x="630" y="44" width="140" height="28" rx="6" fill="var(--blue-bg)" stroke="var(--blue)"/><text x="700" y="62" fill="var(--blue)">C corporation</text></g>
+    <g><rect x="56" y="98" width="108" height="28" rx="6" fill="var(--surface2)" stroke="var(--line)"/><text x="110" y="116" fill="var(--ink)">Schedule C</text></g>
+    <g><rect x="256" y="98" width="108" height="28" rx="6" fill="var(--surface2)" stroke="var(--line)"/><text x="310" y="116" fill="var(--ink)">Form 1065</text></g>
+    <g><rect x="456" y="98" width="108" height="28" rx="6" fill="var(--surface2)" stroke="var(--line)"/><text x="510" y="116" fill="var(--ink)">Form 1120-S</text></g>
+    <g><rect x="646" y="98" width="108" height="28" rx="6" fill="var(--surface2)" stroke="var(--line)"/><text x="700" y="116" fill="var(--ink)">Form 1120</text></g>
+    <g><rect x="266" y="150" width="88" height="26" rx="6" fill="var(--amber-bg)" stroke="var(--amber)"/><text x="310" y="166" fill="var(--amber)">Sch K-1</text></g>
+    <g><rect x="466" y="150" width="88" height="26" rx="6" fill="var(--amber-bg)" stroke="var(--amber)"/><text x="510" y="166" fill="var(--amber)">Sch K-1</text></g>
+    <g><rect x="636" y="150" width="128" height="28" rx="6" fill="var(--surface2)" stroke="var(--line)"/><text x="700" y="166" fill="var(--ink2)" font-size="10.5">21% corporate tax</text></g>
+    <g><rect x="210" y="250" width="260" height="40" rx="9" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/><text x="340" y="264" fill="var(--green)" font-weight="500">Your Form 1040 — the circuit</text><text x="340" y="282" fill="var(--green)" font-size="9.5">+ Sch SE → Sch 2 (SE tax) · QBI → line 13a</text></g>
+  </g>
+  <g><rect x="40" y="318" width="740" height="92" rx="10" fill="none" stroke="var(--red)" stroke-width="1.3" stroke-dasharray="5 3"/>
+    <text x="52" y="338" font-size="11.5" font-weight="600" fill="var(--red)">new fixed-point loops — the circuit/fixed-point machinery transfers directly</text>
+    <g font-size="10.5" fill="var(--red)">
+      <text x="52" y="357">⇄ self-employed retirement contribution ↔ net SE earnings  (Pub 560: 25% → 20%, closed form)</text>
+      <text x="52" y="374">⇄ SE-health deduction ↔ premium tax credit  (Pub 974 — solver on the main page)</text>
+      <text x="52" y="391">⇄ QBI deduction ↔ taxable income  (cut by "taxable income before QBI")</text>
+      <text x="52" y="408">⇄ S-corp reasonable comp ↔ QBI wage-limit ↔ payroll tax  (the optimizer below)</text></g></g>
+</svg>
+</div>
+
+<h2 id="schedc">Self-employed circuit (Schedule C)</h2>
+<p>Net profit flows to <code>Schedule 1 → 1040 line 9</code>; self-employment tax bolts on through <code>Schedule SE → Schedule 2</code>; the adjustments (&frac12; SE tax, the SEP/Solo-401(k) contribution, SE-health) lower AGI; the QBI deduction lowers taxable income. The SEP is the <strong>retirement fixed point</strong> (Pub 560&rsquo;s 25%&rarr;20% is the closed-form resolution).</p>
+<div class="card">
+  <div class="grid g3">
+    <div class="field"><label for="c_status">Filing status</label><select id="c_status"><option value="single">Single</option><option value="mfj">Married filing jointly</option><option value="hoh">Head of household</option></select></div>
+    <div class="field"><label for="c_profit">Net profit (Schedule C, line 31)</label><input id="c_profit" type="number" value="120000" min="0" step="1000"></div>
+    <div class="field"><label for="c_other">Other household income</label><input id="c_other" type="number" value="0" min="0" step="1000"></div>
+  </div>
+  <div class="grid g3">
+    <div class="field"><label for="c_prem">SE health premiums (yearly)</label><input id="c_prem" type="number" value="0" min="0" step="100"></div>
+    <div class="field"><label for="c_sep">SEP / Solo-401(k) contribution</label><input id="c_sep" type="number" value="0" min="0" step="500"></div>
+    <div class="field" style="display:flex;align-items:end"><button id="c_max" style="width:100%">Max the SEP &rarr;</button></div>
+  </div>
+  <div class="grid g3">
+    <div class="metric"><div class="k">SE tax (Sch SE)</div><div class="v" id="c_se">&mdash;</div></div>
+    <div class="metric"><div class="k">QBI deduction (8995)</div><div class="v" id="c_qbi">&mdash;</div></div>
+    <div class="metric"><div class="k">total federal tax</div><div class="v" id="c_total">&mdash;</div></div>
+  </div>
+  <p id="c_detail" class="sub" style="font-size:13.5px;margin:10px 2px 0"></p>
+</div>
+
+<h2 id="scorp">S-corp reasonable-compensation optimizer</h2>
+<p>An S-corp owner splits the profit into W-2 <em>reasonable compensation</em> (subject to payroll tax) and a <em>distribution</em> (not). Lower comp saves payroll tax &mdash; but above the QBI threshold the deduction is capped at <strong>50% of W-2 wages</strong>, so comp that&rsquo;s <em>too</em> low chokes the QBI deduction. The optimizer sweeps comp to minimize total federal tax (income tax + both FICA halves), respecting your reasonable-comp floor.</p>
+<div class="card">
+  <div class="grid g3">
+    <div class="field"><label for="s_status">Filing status</label><select id="s_status"><option value="single">Single</option><option value="mfj">Married filing jointly</option><option value="hoh">Head of household</option></select></div>
+    <div class="field"><label for="s_profit">Business profit (before owner comp)</label><input id="s_profit" type="number" value="300000" min="0" step="5000"></div>
+    <div class="field"><label for="s_floor">Reasonable-comp floor</label><input id="s_floor" type="number" value="60000" min="0" step="5000"></div>
+  </div>
+  <div style="margin-top:2px"><button id="s_opt">Find the optimal comp &rarr;</button></div>
+  <div class="out" id="s_out" style="display:none"></div>
+</div>
+
+<h2>Sources &amp; assumptions</h2>
+<ul>
+  <li>Schedule C / Schedule SE; Form 8995 / 8995-A (QBI, §199A) with the 50%-wages limit and the threshold phase-in; <a href="https://www.irs.gov/publications/p560">Pub. 560</a> (self-employed retirement, the 25%&rarr;20% rate); <a href="https://www.irs.gov/pub/irs-pdf/f7206.pdf">Form 7206</a> / <a href="https://www.irs.gov/publications/p974">Pub. 974</a> (SE-health ↔ PTC).</li>
+  <li>2025 constants: SS wage base $176,100; FICA 12.4% OASDI + 2.9% Medicare; QBI threshold $197,300 single / $394,600 MFJ with a $50k/$100k phase-in; defined-contribution limit $70,000.</li>
+  <li><strong>Simplifications:</strong> non-SSTB; sole proprietor modeled with no W-2 wages and no qualified property (UBIA = 0), so QBI is wage-limited above the threshold; reasonable compensation is exogenous (a legal standard, not optimized to a floor the IRS would accept); additional Medicare, NIIT, and state tax are omitted. See the <a href="methodology.html">methodology page</a> for the core framework.</li>
+</ul>
+<p class="sub" style="font-size:13px">All computation runs locally in your browser. <a href="https://github.com/hh3082/1040-tax-circuit">Source on GitHub.</a></p>
+
+</main>
+<footer><div class="wrap"><p><strong>The 1040 Tax Circuit</strong> · <a href="index.html">personal return</a> · <a href="methodology.html">methodology</a>. Not affiliated with the IRS. <strong>Not tax, legal, or financial advice.</strong></p></div></footer>
+
+<script>
+const BRACKETS={single:[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]],
+ mfj:[[0,.10],[23850,.12],[96950,.22],[206700,.24],[394600,.32],[501050,.35],[751600,.37]],
+ hoh:[[0,.10],[17000,.12],[64850,.22],[103350,.24],[197300,.32],[250525,.35],[626350,.37]]};
+BRACKETS.qss=BRACKETS.mfj; BRACKETS.mfs=[[0,.10],[11925,.12],[48475,.22],[103350,.24],[197300,.32],[250525,.35],[375800,.37]];
+const STD={single:15750,mfs:15750,mfj:31500,qss:31500,hoh:23625};
+const QTHR={single:197300,mfs:197300,mfj:394600,qss:394600,hoh:197300}, QRNG={single:50000,mfs:50000,mfj:100000,qss:100000,hoh:50000};
+const WAGEBASE=176100, SEPLIMIT=70000;
+const $=id=>document.getElementById(id), usd=x=>'$'+Math.round(x).toLocaleString();
+function bracketTax(ti,st){const b=BRACKETS[st];let t=0;for(let i=0;i<b.length;i++){const nx=i+1<b.length?b[i+1][0]:Infinity;if(ti>b[i][0])t+=(Math.min(ti,nx)-b[i][0])*b[i][1];}return t;}
+function tax(ti,st){ti=Math.max(ti,0);let base=ti<5?ti:Math.floor(ti/50)*50+25;if(ti>=100000)base=ti;return Math.round(bracketTax(base,st));}
+function seTax(p){const ne=0.9235*p;return Math.min(ne,WAGEBASE)*0.124+ne*0.029;}
+function qbiDed(qbi,tb4,st,w2,ubia){const full=0.20*Math.max(qbi,0),capInc=0.20*tb4,thr=QTHR[st],rng=QRNG[st];
+ if(tb4<=thr)return Math.min(full,capInc);
+ const wl=Math.max(0.5*w2,0.25*w2+0.025*ubia),wlim=Math.min(full,wl),ratio=Math.min((tb4-thr)/rng,1);
+ return Math.min(full-(full-wlim)*ratio,capInc);}
+
+function scheduleC(p){const st=p.status,se=seTax(p.profit),half=se/2;
+ const sepMax=Math.min(0.20*(p.profit-half),SEPLIMIT),retire=Math.min(p.sep||0,sepMax);
+ const seH=Math.min(p.prem||0,p.profit-half-retire),qbi=p.profit-half-retire-seH;
+ const agi=(p.other||0)+p.profit-half-retire-seH,tb4=Math.max(agi-STD[st],0);
+ const qd=qbiDed(qbi,tb4,st,0,0),taxable=Math.max(tb4-qd,0),it=tax(taxable,st);
+ return {se,half,sepMax,retire,seH,agi,tb4,qd,taxable,it,total:it+se};}
+function renderC(){const p={status:$('c_status').value,profit:+$('c_profit').value||0,other:+$('c_other').value||0,prem:+$('c_prem').value||0,sep:+$('c_sep').value||0};
+ const r=scheduleC(p);$('c_se').textContent=usd(r.se);$('c_qbi').textContent=usd(r.qd);$('c_total').textContent=usd(r.total);
+ const eff=p.profit>0?(100*r.total/p.profit).toFixed(1)+'%':'—';
+ $('c_detail').innerHTML='&frac12; SE-tax deduction '+usd(r.half)+' · SEP/Solo-401(k) used '+usd(r.retire)+' (max '+usd(r.sepMax)+') · SE-health '+usd(r.seH)+
+   ' · AGI '+usd(r.agi)+' · taxable income '+usd(r.taxable)+' · income tax '+usd(r.it)+' · <strong>effective rate '+eff+'</strong>.'+
+   (r.tb4>QTHR[p.status]?' <span style="color:var(--amber)">Above the QBI threshold with no W-2 wages, the deduction is wage-limited toward $0 — the classic reason to consider an S-corp.</span>':'');}
+$('c_max').addEventListener('click',function(){const p={status:$('c_status').value,profit:+$('c_profit').value||0,other:+$('c_other').value||0,prem:+$('c_prem').value||0};
+ $('c_sep').value=Math.round(scheduleC({...p,sep:0}).sepMax);renderC();});
+
+function scorp(profit,st,other,w){const f1=Math.min(w,WAGEBASE)*0.062+w*0.0145,f2=f1,dist=Math.max(profit-w-f1,0);
+ const agi=(other||0)+w+dist,tb4=Math.max(agi-STD[st],0),qd=qbiDed(dist,tb4,st,w,0),taxable=Math.max(tb4-qd,0),it=tax(taxable,st);
+ return {w,fica:f1+f2,dist,qd,taxable,it,total:it+f1+f2};}
+function optScorp(){const profit=+$('s_profit').value||0,st=$('s_status').value,floor=+$('s_floor').value||0;
+ let best=null,pts=[];
+ const step=Math.max(100,Math.round((profit-floor)/1500));
+ for(let w=floor;w<=profit;w+=step){const r=scorp(profit,st,0,w);pts.push([w,r.total]);if(best===null||r.total<best.total)best=r;}
+ const naiveHi=scorp(profit,st,0,profit),naiveLo=scorp(profit,st,0,floor),better=Math.min(naiveHi.total,naiveLo.total);
+ // build the curve svg
+ const W=620,H=180,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+ const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+ const X=v=>40+(v-x0)/(x1-x0||1)*(W-60),Y=v=>H-30-(v-y0)/(y1-y0||1)*(H-50);
+ const poly=pts.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' ');
+ const ox=X(best.w),oy=Y(best.total);
+ const svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Total federal tax versus reasonable compensation, with the optimum marked">'+
+   '<line x1="40" y1="'+(H-30)+'" x2="'+(W-20)+'" y2="'+(H-30)+'" stroke="var(--line)"/><line x1="40" y1="10" x2="40" y2="'+(H-30)+'" stroke="var(--line)"/>'+
+   '<polyline fill="none" stroke="var(--blue)" stroke-width="2.2" points="'+poly+'"/>'+
+   '<line x1="'+ox.toFixed(1)+'" y1="10" x2="'+ox.toFixed(1)+'" y2="'+(H-30)+'" stroke="var(--teal)" stroke-dasharray="4 3"/>'+
+   '<circle cx="'+ox.toFixed(1)+'" cy="'+oy.toFixed(1)+'" r="4" fill="var(--teal)"/>'+
+   '<text x="'+Math.min(ox+6,W-130).toFixed(1)+'" y="22" font-size="11" fill="var(--teal)">optimum '+usd(best.w)+'</text>'+
+   '<text x="40" y="'+(H-12)+'" font-size="10" fill="var(--ink3)">'+usd(x0)+'</text>'+
+   '<text x="'+(W-20)+'" y="'+(H-12)+'" font-size="10" fill="var(--ink3)" text-anchor="end">'+usd(x1)+'</text>'+
+   '<text x="'+(W/2)+'" y="'+(H-12)+'" font-size="10.5" fill="var(--ink2)" text-anchor="middle">reasonable W-2 compensation</text></svg>';
+ $('s_out').style.display='block';
+ $('s_out').innerHTML='<div style="font-weight:600;color:var(--green);margin-bottom:6px">Optimal reasonable compensation: '+usd(best.w)+'</div>'+
+   '<table><tr><th>component</th><th class="num">amount</th></tr>'+
+   '<tr><td>W-2 reasonable comp</td><td class="num">'+usd(best.w)+'</td></tr>'+
+   '<tr><td>distribution (no payroll tax)</td><td class="num">'+usd(best.dist)+'</td></tr>'+
+   '<tr><td>QBI deduction (cap = 50% of comp)</td><td class="num">'+usd(best.qd)+'</td></tr>'+
+   '<tr><td>payroll tax (both FICA halves)</td><td class="num">'+usd(best.fica)+'</td></tr>'+
+   '<tr><td>income tax</td><td class="num">'+usd(best.it)+'</td></tr>'+
+   '<tr><td><strong>total federal tax</strong></td><td class="num"><strong>'+usd(best.total)+'</strong></td></tr></table>'+
+   '<p style="font-size:13.5px;margin:8px 0 4px" class="sub">vs all-salary ('+usd(naiveHi.total)+') and floor-comp ('+usd(naiveLo.total)+') &mdash; the optimizer saves <strong style="color:var(--green)">'+usd(better-best.total)+'</strong> over the better naive choice. The curve below shows the trade-off; the optimum sits where the QBI wage-limit just unlocks the deduction.</p>'+svg;}
+$('s_opt').addEventListener('click',optScorp);
+['c_status','c_profit','c_other','c_prem','c_sep'].forEach(id=>$(id).addEventListener('input',renderC));
+renderC();
+</script>
+</body>
+</html>
