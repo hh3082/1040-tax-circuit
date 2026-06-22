@@ -238,6 +238,16 @@ $$\begin{aligned}
 <p>The single-year problem already needs binaries. Stringing years together adds <strong>state</strong>: the traditional-IRA balance grows, and from age&nbsp;73 it throws off <strong>Required Minimum Distributions</strong> &mdash; forced taxable income equal to the prior year-end balance divided by an age factor (Pub. 590-B, Uniform Lifetime Table). A conversion today is taxed now but shrinks <em>every future RMD</em>. Years are coupled; you cannot optimize one in isolation.</p>
 <p>Enumerating conversion schedules is hopeless: \(G\) choices per year over \(T\) years is \(G^{T}\) policies &mdash; for \(G=81,\ T=25\) that is about \(10^{48}\). Dynamic programming over the one-dimensional balance state is \(T\cdot|B|\cdot G\) &mdash; here about <strong>326,000</strong> stage evaluations. Each stage solves the same non-convex single-year cost; Bellman&rsquo;s recursion stitches them into an optimal schedule. (Validated against brute force on a short horizon: 0.14% gap.)</p>
 
+<p>Concretely, the state is the traditional-IRA balance \(B_t\) at age \(a_t=a_0+t\); the control is the conversion \(c_t\). The value function (present-value cost-to-go) satisfies the Bellman recursion</p>
+<div class="eq">
+$$\begin{aligned}
+J_T(B) &= \rho\, B,\\[2pt]
+J_t(B) &= \min_{0\,\le\, c\,\le\, B-R(B,a_t)}\;\Big\{\; g_t(B,c)\;+\;\beta\, J_{t+1}\big(\underbrace{(B-R(B,a_t)-c)\,(1+g)}_{B_{t+1}}\big)\;\Big\},\\[4pt]
+\pi_t^{*}(B) &= \arg\min_{c}\big\{\,g_t(B,c)+\beta\, J_{t+1}(B_{t+1})\,\big\},\qquad \text{objective }=\,J_0(B_0).
+\end{aligned}$$
+</div>
+<p>Here \(R(B,a)=B/\delta(a)\) is the required minimum distribution &mdash; zero before age&nbsp;73, with \(\delta(a)\) the Uniform Lifetime divisor (Pub.&nbsp;590-B); \(g_t(B,c)=\mathrm{Tax}\big(\text{pension}+R(B,a_t)+c\big)\) is the <em>non-convex, discontinuous</em> single-year cost &mdash; the MILP above is exactly the inner \(\min\) over \(c\); \(\beta=1/(1+d)\) is the discount factor, \(g\) the growth rate, and \(\rho\) the assumed rate on any balance left at the horizon. The inner block (one year, a MILP) and the outer loop (Bellman over the balance) are the two layers of <a href="#circuit">the circuit</a>.</p>
+
 <div class="card">
   <p style="margin-top:2px"><strong>Worked example.</strong> Single filer, age 65, <span class="mono">$900,000</span> traditional IRA, <span class="mono">$22k</span> pension + <span class="mono">$30k</span> Social Security + <span class="mono">$5k</span> gains per year. Balance grows 5%/yr; future cash flows discounted 3%/yr; any traditional balance left at the horizon is assumed eventually taxed at 24%.</p>
   <div class="grid g3">
@@ -256,6 +266,17 @@ $$\begin{aligned}
   </div>
 </div>
 <p class="sub" style="font-size:14px">Doing nothing lets the IRA grow to <span class="mono">$1.38M</span>; after age 73 its RMDs are forced out at rising rates, and a six-figure deferred liability rides to the end. The optimizer converts hard in the low-rate early years &mdash; each year stopping just under an IRMAA threshold &mdash; draining the balance by age 80, after which that retiree&rsquo;s tax is just <span class="mono">$1,628</span>/yr. The result is sensitive to the assumed future/heir rate: that terminal condition is part of the control problem, not a hidden constant.</p>
+
+<p>That chart is one <em>trajectory</em> &mdash; the path the optimal policy takes from this particular $900k start. The DP actually produces the whole <strong>feedback policy</strong> \(\pi^{*}_t(B)\): for <em>any</em> balance at <em>any</em> age, how much to convert. Here is that policy surface, with the trajectory above drawn on top of it.</p>
+
+<div class="svgcard" aria-label="Optimal Roth-conversion policy from the dynamic program, over balance and age, with the realized trajectory overlaid">
+  <svg id="policy" viewBox="0 0 860 470" width="100%" role="img"><title>Optimal Roth-conversion policy from the DP</title></svg>
+  <div class="legend">
+    <span><span class="swb" style="background:var(--teal)"></span> shade = optimal conversion \(\pi^{*}_t(B)\) that year</span>
+    <span><span class="sw" style="background:var(--blue)"></span> the realized optimal trajectory from $900k</span>
+  </div>
+</div>
+<p class="sub" style="font-size:14px">Read a column as &ldquo;at this age, given this balance, convert this much.&rdquo; The policy is <em>increasing in the balance</em> (more in the IRA &rarr; convert more) and <em>shifts at age 73</em> when RMDs begin to pre-empt part of the draw. The blue trajectory shows the realized path sliding down through the field as conversions drain the balance to zero by age 80 &mdash; after which the policy correctly calls for no conversions (nothing left to convert). The banding within a column is the cliff-aware behavior: conversions cluster at amounts that stop just under an IRMAA threshold.</p>
 
 <p>So the same idea that turned a 1040 into a circuit scales: the forward map is the documented tax engine; &ldquo;least tax&rdquo; is an optimization over the levers. The levers here &mdash; how much to convert, and when &mdash; live in a cost landscape with humps and cliffs, which is exactly why it takes a mixed-integer program and a dynamic program rather than a line down the brackets.</p>
 
@@ -385,6 +406,37 @@ function drawMulti(){
   $('multi').innerHTML=`<title>Traditional-IRA balance and conversion schedule, optimal vs. do-nothing</title>`+s;
 }
 
+/* ---- DP optimal policy surface (from models/multiyear.py; conversions in $1,000s) ---- */
+const PA=[65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89];
+const PB=[0,45,90,135,180,225,270,315,360,405,450,495,540,585,630,675,720,765,810,855,900,945,990,1035,1080,1125,1170,1215,1260,1305,1350,1395,1440,1485,1530,1575,1620,1665,1710,1755,1800];
+const PH=[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[15,15,15,15,15,15,15,15,13,13,13,13,13,13,13,12,12,12,12,12,12,12,12,42,42],[53,53,53,53,53,53,53,53,50,50,50,50,49,49,48,48,48,48,48,48,47,47,47,47,46],[52,52,52,52,52,52,52,52,47,47,47,47,47,47,47,47,46,45,45,44,44,44,44,42,42],[52,52,52,52,52,52,52,52,45,45,45,45,45,45,43,43,43,43,42,42,42,40,40,40,39],[53,53,53,53,53,53,53,53,43,43,43,43,43,43,40,40,40,40,40,40,37,66,37,37,34],[51,51,51,51,51,51,51,51,42,42,42,42,39,39,68,38,38,38,38,63,63,60,35,31,31],[79,79,79,79,79,79,79,79,68,68,64,64,64,64,64,64,63,63,59,59,59,59,59,29,29],[76,76,76,76,76,76,76,76,65,65,65,65,65,60,60,60,60,60,59,55,55,29,54,25,25],[76,76,76,76,76,76,76,76,63,63,63,63,58,58,58,58,58,57,57,52,52,52,24,23,19],[79,79,79,79,79,79,79,79,60,59,59,59,59,59,59,53,53,53,53,53,47,47,21,16,16],[80,80,80,80,80,80,80,80,60,59,59,59,53,53,53,53,53,53,47,47,46,46,46,17,11],[74,74,74,74,74,74,74,74,58,58,58,91,90,84,51,51,51,83,83,44,44,44,38,13,6],[80,80,80,80,80,80,80,146,91,91,56,84,84,119,118,118,83,48,41,41,41,14,34,7,7],[142,142,142,142,110,79,142,110,121,121,121,121,113,113,83,112,112,112,45,37,37,37,7,7,0],[143,143,143,143,143,143,143,143,122,113,113,113,113,113,113,112,112,40,40,40,32,8,31,0,0],[144,144,144,144,144,144,144,144,87,112,112,112,112,112,111,111,77,102,34,34,34,25,0,25,17],[143,143,143,143,143,143,143,143,110,110,110,110,110,110,109,109,100,72,36,27,27,27,27,18,18],[142,142,142,142,142,142,142,142,117,107,107,107,77,106,106,106,106,67,67,29,28,19,19,19,9],[171,171,171,171,139,171,139,139,113,113,133,102,102,102,102,102,101,101,30,20,60,20,20,10,10],[146,146,146,146,146,146,146,146,108,108,108,108,108,129,129,96,96,64,53,21,21,21,10,10,10],[165,165,165,165,165,165,165,142,102,102,102,124,124,124,101,67,90,89,89,22,55,11,11,11,0],[173,173,173,173,173,173,173,173,107,107,107,130,130,118,118,94,94,94,23,47,12,12,12,0,0],[142,142,142,142,142,168,142,168,137,137,137,99,99,99,123,123,86,24,85,12,12,12,0,0,0],[176,176,176,176,176,176,162,176,104,104,130,129,129,129,116,90,90,77,13,13,13,0,0,25,25],[169,169,169,169,169,169,169,169,135,135,148,121,121,94,94,120,80,53,13,13,0,39,0,65,26],[146,146,146,146,146,146,146,146,99,126,98,126,126,140,84,83,83,83,41,41,41,68,27,27,13],[197,197,197,197,197,197,167,182,146,146,146,160,116,116,116,87,43,43,43,71,71,0,28,14,14],[173,173,173,173,173,205,189,173,121,121,121,121,120,90,75,105,75,74,74,30,59,29,15,15,15],[196,196,179,196,196,179,196,147,126,125,125,141,109,109,109,109,77,62,62,61,31,15,15,15,0],[186,186,186,219,219,169,202,202,162,162,113,113,113,113,80,80,96,64,96,63,16,16,16,16,0],[174,174,209,174,209,209,209,209,134,134,151,150,83,83,100,66,99,66,66,49,16,16,16,0,0],[216,216,216,216,216,216,180,198,156,156,155,121,103,103,103,103,68,68,85,17,17,17,0,0,0],[223,223,223,223,204,223,223,223,161,161,142,107,107,106,71,71,70,88,18,17,17,0,0,0,17],[210,210,210,210,210,210,210,210,166,147,147,110,110,73,73,91,91,90,18,18,18,0,0,35,18],[217,217,217,217,217,217,217,217,152,151,132,113,113,75,94,94,112,19,19,19,0,0,37,18,18],[223,223,223,223,223,223,223,223,156,156,155,136,97,97,96,96,96,57,19,0,38,38,19,19,19],[229,208,229,208,229,229,208,229,160,160,140,100,100,99,99,99,59,20,20,39,39,0,19,19,0],[214,214,214,214,214,214,214,214,165,144,123,102,102,102,122,61,81,20,40,40,40,0,20,20,0],[219,219,219,219,219,219,219,219,148,148,147,105,126,105,104,83,83,42,41,41,0,20,20,0,0],[225,225,225,225,225,225,225,225,152,151,130,129,108,129,86,86,21,43,42,63,0,21,21,0,0]];
+const PC=229;
+const PT=[[65,900],[66,791],[67,665],[68,550],[69,498],[70,440],[71,381],[72,320],[73,254],[74,211],[75,167],[76,120],[77,70],[78,18],[79,5],[80,0],[81,0],[82,0],[83,0],[84,0],[85,0],[86,0],[87,0],[88,0],[89,0]];
+function drawPolicy(){
+  const W=860,H=470,L=66,Rm=118,Tp=22,Bm=42;
+  const nC=PA.length,nR=PB.length,Bmax=PB[nR-1];
+  const plotW=W-L-Rm,plotH=H-Tp-Bm,cw=plotW/nC,rowH=plotH/nR;
+  const x=c=>L+c*cw, rowY=r=>Tp+(nR-1-r)*rowH, yB=b=>Tp+(1-b/Bmax)*plotH;
+  let s='';
+  for(let r=0;r<nR;r++)for(let c=0;c<nC;c++){const v=PH[r][c];if(v<=0)continue;
+    const op=0.12+0.86*Math.min(v/PC,1);
+    s+=`<rect x="${x(c).toFixed(1)}" y="${rowY(r).toFixed(1)}" width="${(cw+0.6).toFixed(1)}" height="${(rowH+0.6).toFixed(1)}" fill="var(--teal)" fill-opacity="${op.toFixed(3)}"/>`;}
+  const xr=x(8);
+  s+=`<line x1="${xr.toFixed(1)}" y1="${Tp}" x2="${xr.toFixed(1)}" y2="${(Tp+plotH).toFixed(1)}" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="3 3"/><text x="${(xr+3).toFixed(1)}" y="${Tp+12}" font-size="10" fill="var(--ink2)">RMDs (73)</text>`;
+  let d='';PT.forEach((p,i)=>{const xx=x(PA.indexOf(p[0])+0.5);d+=(i?'L':'M')+xx.toFixed(1)+' '+yB(p[1]).toFixed(1)+' ';});
+  s+=`<path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2.5"/>`;
+  PT.forEach(p=>{if(p[1]>0){const xx=x(PA.indexOf(p[0])+0.5);s+=`<circle cx="${xx.toFixed(1)}" cy="${yB(p[1]).toFixed(1)}" r="2.6" fill="var(--blue)"/>`;}});
+  [0,450,900,1350,1800].forEach(b=>{const yy=yB(b);s+=`<text x="${L-8}" y="${(yy+4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink3)">$${(b/1000).toFixed(2)}M</text>`;});
+  s+=`<text transform="translate(15 ${(Tp+plotH/2).toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink2)">traditional IRA balance (state)</text>`;
+  for(let i=0;i<nC;i+=2){s+=`<text x="${(x(i)+cw/2).toFixed(1)}" y="${H-Bm+16}" text-anchor="middle" font-size="10.5" fill="var(--ink3)">${PA[i]}</text>`;}
+  s+=`<text x="${(L+plotW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="12" fill="var(--ink2)">age</text>`;
+  const lx=W-Rm+30,lyTop=Tp+16,llh=plotH-48,lw=15;
+  for(let kk=0;kk<=40;kk++){const op=0.12+0.86*(kk/40);s+=`<rect x="${lx}" y="${(lyTop+(1-kk/40)*llh).toFixed(1)}" width="${lw}" height="${(llh/40+0.8).toFixed(1)}" fill="var(--teal)" fill-opacity="${op.toFixed(3)}"/>`;}
+  s+=`<text x="${lx}" y="${lyTop-6}" font-size="11" fill="var(--ink2)">convert c*</text>`;
+  s+=`<text x="${lx+lw+5}" y="${(lyTop+6).toFixed(1)}" font-size="11" fill="var(--ink3)">$${PC}k</text>`;
+  s+=`<text x="${lx+lw+5}" y="${(lyTop+llh).toFixed(1)}" font-size="11" fill="var(--ink3)">$0</text>`;
+  $('policy').innerHTML=`<title>Optimal Roth-conversion policy from the DP</title>`+s;
+}
 function render(){
   const R=readR(), t=totalTax(R.ordinary,R.ss,R.ltcg,R.status,R.boxes,true);
   $('o_base').textContent=usd(t.total); $('o_magi').textContent=usd(t.agi); $('o_ss').textContent=usd(t.ssInc);
@@ -392,7 +444,7 @@ function render(){
 }
 ['status','age','ordinary','ss','ltcg','rstar'].forEach(id=>$(id).addEventListener('input',render));
 $('optbtn').addEventListener('click',optimize);
-render(); drawMulti();
+render(); drawMulti(); drawPolicy();
 </script>
 </body>
 </html>

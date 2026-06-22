@@ -22,6 +22,14 @@ leftover traditional balance is eventually taxed) are explicit parameters, not b
 import numpy as np
 from retire_tax import total_tax, rmd
 
+def _val(Bn, grid, V):
+    """Value-to-go at balance Bn: linear interpolation on the grid, LINEAR EXTRAPOLATION above the
+    top (the balance can grow past the grid by the +g factor; clamping would under-price a big
+    balance and wrongly suppress conversions there)."""
+    if Bn >= grid[-1]:
+        return V[-1] + (V[-1] - V[-2]) / (grid[-1] - grid[-2]) * (Bn - grid[-1])
+    return float(np.interp(Bn, grid, V))
+
 def stage_tax(balance, c, age, P):
     """This year's total federal tax: ordinary = pension + RMD(balance) + Roth conversion c."""
     r = rmd(balance, age)
@@ -52,7 +60,7 @@ def solve_dp(P, M=161, G=81):
             for c in cs:
                 tax, _ = stage_tax(B, c, age, P)
                 Bn = max((B - r - c) * (1.0 + g), 0.0)
-                cont = np.interp(Bn, grid, V)            # value-to-go, interpolated on the grid
+                cont = _val(Bn, grid, V)                 # value-to-go (interp, extrapolate above grid)
                 tot = disc[t] * tax + cont
                 if tot < best:
                     best, bestc = tot, c
@@ -71,7 +79,8 @@ def solve_dp(P, M=161, G=81):
         path.append(dict(age=age, balance=round(B), rmd=round(r), conversion=round(c), tax=round(tax)))
         B = max((B - r - c) * (1.0 + g), 0.0)
     totpv += disc[T] * rt * B
-    return dict(pv_total=round(totpv), terminal_balance=round(B), path=path)
+    return dict(pv_total=round(totpv), terminal_balance=round(B), path=path,
+                grid=grid.tolist(), ages=[a0 + t for t in range(T)], policy=policy.tolist())
 
 def baseline_no_conversion(P):
     """Take only the forced RMDs, never convert -- the do-nothing policy, for comparison."""
