@@ -341,7 +341,7 @@ function compute(inp){
  return {totalIncome,agi,taxable,t16,saver,total,iraDeduct:D,ssTax,eff:totalIncome>0?total/totalIncome:0,
    refund:Math.max(inp.withholding-total,0),owe:Math.max(total-inp.withholding,0)};
 }
-function readInputs(){return {status:status.value,active:$('active').checked,
+function readInputs(){return {status:$('status').value,active:$('active').checked,
  wages:+wages.value||0,withholding:+withholding.value||0,interest:+interest.value||0,
  dividends:+dividends.value||0,pension:+pension.value||0,ssben:+ssben.value||0,ira:+ira.value||0,hsa:+hsa.value||0};}
 function render(){
