@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation against NBER TAXSIM</title>
+<meta name="description" content="The tax engine behind the circuit, checked case-by-case against NBER's TAXSIM35 microsimulation model: AGI and taxable Social Security match exactly; federal income tax matches to the dollar except for a documented TAXSIM staleness in the age-65 standard deduction.">
+<style>
+  :root{
+    --bg:#fbfaf7; --surface:#ffffff; --surface2:#f3f1ea; --line:#e6e3da;
+    --ink:#1c1c1a; --ink2:#5f5e5a; --ink3:#8a8880;
+    --blue:#185fa5; --blue-bg:#e6f1fb; --teal:#0f6e56; --teal-bg:#e1f5ee;
+    --amber:#854f0b; --amber-bg:#faeeda; --red:#a32d2d; --red-bg:#fcebeb;
+    --green:#3b6d11; --green-bg:#eaf3de; --radius:12px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#1a1916;--surface:#222019;--surface2:#2b2922;--line:#3a382f;
+      --ink:#ece9e0;--ink2:#b4b2a9;--ink3:#83817a;
+      --blue:#85b7eb;--blue-bg:#11233a;--teal:#5dcaa5;--teal-bg:#0b261f;
+      --amber:#ef9f27;--amber-bg:#2e2410;--red:#f09595;--red-bg:#2e1414;--green:#97c459;--green-bg:#1a2810;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+  h1{font-size:32px;font-weight:600;letter-spacing:-.02em;margin:.2em 0 .1em;line-height:1.15}
+  h2{font-size:22px;font-weight:600;letter-spacing:-.01em;margin:2em 0 .5em}
+  p{margin:.6em 0;color:var(--ink)}
+  .lede{font-size:18px;color:var(--ink2);margin:.4em 0 1em}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  .sub{color:var(--ink2)}
+  .back{display:inline-block;font-size:14px;margin:16px 0 0}
+  header{padding:40px 0 8px;border-bottom:1px solid var(--line)}
+  .tag{display:inline-block;font-size:12.5px;font-weight:600;color:var(--teal);background:var(--teal-bg);
+    padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:14px 0}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:7px}
+  .p-green{background:var(--green-bg);color:var(--green)} .p-amber{background:var(--amber-bg);color:var(--amber)}
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){.g3{grid-template-columns:1fr}}
+  .metric{background:var(--surface2);border-radius:10px;padding:13px 15px}
+  .metric .k{font-size:12.5px;color:var(--ink2)} .metric .v{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:.6em 0}
+  td,th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--ink2);font-weight:600;font-size:12px}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  tr.match td.d{color:var(--green)} tr.diff td.d{color:var(--amber);font-weight:600}
+  blockquote{margin:12px 0;padding:10px 16px;border-left:3px solid var(--line);background:var(--surface2);
+    border-radius:0 8px 8px 0;color:var(--ink2);font-size:14.5px}
+  footer{border-top:1px solid var(--line);margin-top:44px;padding:24px 0 60px;color:var(--ink2);font-size:13.5px}
+  ul{padding-left:20px} li{margin:.25em 0}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <span class="tag">validation</span>
+  <h1>Checked against NBER TAXSIM</h1>
+  <p class="lede">The whole circuit rests on one engine: a function from income to federal tax, built line-by-line from IRS publications. The natural question is whether it&rsquo;s <em>right</em>. Here it is checked, case by case, against <a href="https://taxsim.nber.org/taxsim35/">TAXSIM35</a> &mdash; the reference-grade tax microsimulation model maintained by Dan Feenberg at the National Bureau of Economic Research and used across public-finance research.</p>
+  <a class="back" href="index.html">&larr; back to the circuit</a>
+</div></header>
+
+<main class="wrap">
+
+<h2>Headline</h2>
+<div class="grid g3">
+  <div class="metric"><div class="k">AGI &mdash; cases matching exactly</div><div class="v" style="color:var(--green)">15 / 15</div></div>
+  <div class="metric"><div class="k">Taxable Social Security &mdash; exact</div><div class="v" style="color:var(--green)">15 / 15</div></div>
+  <div class="metric"><div class="k">Federal income tax &mdash; max difference</div><div class="v">$24</div></div>
+</div>
+<p>And that &le;$24 difference, on six cases, is <strong>entirely a known staleness in this TAXSIM build</strong> &mdash; not an error in our engine. Details below.</p>
+
+<h2>What had to be matched, and how</h2>
+<p>Two practical constraints shaped the test:</p>
+<ul>
+  <li>The public taxsim35 endpoint (version 03/22/24) implements federal law <strong>only through 2023</strong> &mdash; it rejects 2024 and 2025. So the comparison is run at <strong>2023</strong>: our engine&rsquo;s brackets, standard deduction, and long-term-gains breakpoints are set to their 2023 values, while the Social-Security &ldquo;torpedo&rdquo; thresholds (<span class="mono">$25k/$32k</span>, <span class="mono">$34k/$44k</span>) and the NIIT thresholds (<span class="mono">$200k/$250k</span>) are <em>statutory and year-invariant</em>, so they are left exactly as the engine ships for 2025.</li>
+  <li>TAXSIM computes federal &amp; state income tax plus FICA, but <strong>not Medicare IRMAA</strong>. So we compare federal income tax with IRMAA switched off (<span class="mono">income tax + NIIT</span>) against TAXSIM&rsquo;s <span class="mono">fiitax</span>, alongside AGI and taxable Social Security.</li>
+</ul>
+<p>The battery exercises the parts most likely to hide a bug: the Social-Security torpedo at the 50% and 85% inclusion tiers, capital-gains stacking across the 0% / 15% / 20% breakpoints, the NIIT surtax, the top bracket, and both single and joint filers.</p>
+
+<h2>The comparison</h2>
+<p class="sub" style="font-size:13.5px">2023 law. &ldquo;Ours&rdquo; = income tax + NIIT (IRMAA off). &Delta; = ours &minus; TAXSIM. AGI and taxable Social Security are identical in every row, so they are shown once.</p>
+<table>
+  <thead><tr><th>case</th><th class="num">TAXSIM</th><th class="num">ours</th><th class="num">&Delta;$</th><th class="num">AGI</th><th class="num">taxable SS</th></tr></thead>
+  <tbody>
+    <tr class="match"><td>W&#8209;2 single, low</td><td class="num">5,900</td><td class="num">5,900</td><td class="num d">0</td><td class="num">62,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>W&#8209;2 married joint</td><td class="num">10,921</td><td class="num">10,921</td><td class="num d">0</td><td class="num">120,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>low income single</td><td class="num">115</td><td class="num">115</td><td class="num d">0</td><td class="num">15,000</td><td class="num">0</td></tr>
+    <tr class="diff"><td>retiree torpedo (base)</td><td class="num">1,904</td><td class="num">1,892</td><td class="num d">&minus;12</td><td class="num">38,300</td><td class="num">11,300</td></tr>
+    <tr class="diff"><td>retiree + conversion</td><td class="num">14,076</td><td class="num">14,054</td><td class="num d">&minus;22</td><td class="num">102,500</td><td class="num">25,500</td></tr>
+    <tr class="match"><td>SS not taxable</td><td class="num">0</td><td class="num">0</td><td class="num d">0</td><td class="num">12,000</td><td class="num">0</td></tr>
+    <tr class="diff"><td>SS 50% tier</td><td class="num">690</td><td class="num">680</td><td class="num d">&minus;10</td><td class="num">22,500</td><td class="num">2,500</td></tr>
+    <tr class="diff"><td>heavy torpedo</td><td class="num">6,528</td><td class="num">6,506</td><td class="num d">&minus;22</td><td class="num">66,600</td><td class="num">26,600</td></tr>
+    <tr class="diff"><td>mfj retirees + gains</td><td class="num">7,000</td><td class="num">6,976</td><td class="num d">&minus;24</td><td class="num">112,500</td><td class="num">42,500</td></tr>
+    <tr class="match"><td>LTCG 15% stacking</td><td class="num">21,760</td><td class="num">21,760</td><td class="num d">0</td><td class="num">150,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>NIIT trigger single</td><td class="num">73,347</td><td class="num">73,347</td><td class="num d">0</td><td class="num">350,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>NIIT mfj, large</td><td class="num">89,752</td><td class="num">89,752</td><td class="num d">0</td><td class="num">500,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>37% bracket single</td><td class="num">177,208</td><td class="num">177,208</td><td class="num d">0</td><td class="num">600,000</td><td class="num">0</td></tr>
+    <tr class="match"><td>LTCG 20% bracket</td><td class="num">94,800</td><td class="num">94,800</td><td class="num d">0</td><td class="num">500,000</td><td class="num">0</td></tr>
+    <tr class="diff"><td>mfj mixed senior</td><td class="num">1,740</td><td class="num">1,720</td><td class="num d">&minus;20</td><td class="num">55,900</td><td class="num">17,900</td></tr>
+  </tbody>
+</table>
+<p><span class="pill p-green">9 / 15 exact</span> &nbsp; <span class="pill p-amber">6 differ by $10&ndash;$24</span> &nbsp; and every differing row is an <strong>age&#8209;65+</strong> case.</p>
+
+<h2>The one discrepancy is TAXSIM&rsquo;s, not ours</h2>
+<p>The six differences scale precisely as <span class="mono">$100 &times; bracket</span> (single) or <span class="mono">$200 &times; bracket</span> (joint) &mdash; the signature of a standard-deduction gap. They trace entirely to the <strong>additional standard deduction for being 65+</strong>: our engine uses <span class="mono">$1,850</span> (single) / <span class="mono">$1,500</span> (married, per person); this TAXSIM build used <span class="mono">$1,750 / $1,400</span> &mdash; the 2022 figures. The IRS 2023 inflation procedure is explicit:</p>
+<blockquote>&ldquo;&hellip; the additional standard deduction amount under &sect;&nbsp;63(f) for the aged or the blind is <strong>$1,500</strong>. The additional standard deduction amount is increased to <strong>$1,850</strong> if the individual is also unmarried and not a surviving spouse.&rdquo;<br><span class="sub" style="font-size:13px">&mdash; IRS Rev. Proc. 2022-38, &sect; 2.15 (2023 amounts)</span></blockquote>
+<p>So our value is the correct 2023 figure. As a final check, the harness re-runs with our add-on forced to TAXSIM&rsquo;s 2022 value &mdash; and <strong>all 15 cases then match to $0</strong>, confirming the add-on is the sole source of the residual. Everything else &mdash; AGI assembly, the entire Social-Security torpedo, capital-gains stacking, the NIIT, and the bracket schedule &mdash; agrees with TAXSIM to the dollar.</p>
+
+<h2>What this does and doesn&rsquo;t cover</h2>
+<ul>
+  <li><strong>Covered &amp; confirmed:</strong> the federal income-tax core &mdash; ordinary brackets, standard deduction, taxable Social Security (Pub. 915), capital-gains stacking (the QDCGT worksheet), and the NIIT (Form 8960) &mdash; reproduces an independent reference implementation exactly.</li>
+  <li><strong>Not covered by TAXSIM:</strong> Medicare <strong>IRMAA</strong>, the discontinuity that makes the retirement problem non-convex, is outside TAXSIM&rsquo;s scope; it remains validated only against the Federal Register table. And the live 2025 parameters can&rsquo;t be tested on this endpoint (2023 is its ceiling) &mdash; the logic is identical; only the indexed constants differ, each cited to its IRS source.</li>
+</ul>
+
+<h2>Reproduce it</h2>
+<p>The comparison is a single script that POSTs the battery to TAXSIM and diffs it against the engine:</p>
+<div class="card mono" style="font-size:13px">cd models &amp;&amp; python3 taxsim_compare.py</div>
+<p class="sub" style="font-size:14px">Source: <a href="https://github.com/hh3082/1040-tax-circuit/blob/main/models/taxsim_compare.py">models/taxsim_compare.py</a>. It reparameterizes the engine to 2023, submits 15 cases over HTTP, and prints the table above plus the add-on confirmation.</p>
+
+</main>
+
+<footer><div class="wrap">
+  <p><strong>The Tax Circuit &mdash; validation</strong> &middot; <a href="index.html">the 1040 circuit</a> &middot; <a href="methodology.html">methodology</a> &middot; <a href="business.html">small business</a> &middot; <a href="retirement.html">retirement</a> &middot; <a href="https://github.com/hh3082/1040-tax-circuit">source on GitHub</a>. Not affiliated with the IRS or NBER. <strong>Not tax, legal, or financial advice.</strong></p>
+</div></footer>
+
+</body>
+</html>
