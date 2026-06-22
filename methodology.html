@@ -29,7 +29,13 @@
   .eq{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-family:var(--mono);font-size:13.5px;overflow:auto}
   ul{padding-left:20px} li{margin:.3em 0}
   footer{border-top:1px solid var(--line);margin-top:46px;padding:24px 0 56px;color:var(--ink2);font-size:13.5px}
+  .modelbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:14px 0;overflow-x:auto}
+  .katex{font-size:1.02em}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}],throwOnError:false})"></script>
 </head>
 <body>
 <header><div class="wrap"><span class="tag">methodology</span>
@@ -62,6 +68,27 @@
 
 <h2>Minimizing tax</h2>
 <p>&ldquo;Least tax&rdquo; is <code>min F</code> over the lever variables subject to the contribution caps and eligibility guards. Because the only nonlinearity is the convex bracket function, this is a small <strong>mixed-integer linear program</strong>: the graph&rsquo;s affine edges become linear equality constraints, the lever inputs become continuous decision variables (the Saver&rsquo;s-Credit tier is a binary), and the bracket map becomes a convex piecewise-linear relaxation. The genuinely non-convex parts &mdash; the Tax Table&rsquo;s $50-row rounding and the two cyclic loops &mdash; live <em>outside</em> the linear program (a post-solve reconciliation, and the fixed-point solvers). The on-page calculator uses a fast grid search over the same feasible set.</p>
+
+<h3>The MILP, written out</h3>
+<p>For a given filer, let \(w\) be wages (earned income), \(y_0\) other income, \(d_{\mathrm{std}}\) the standard deduction; \(r_k,\Delta_k\) the bracket rates and widths (rates increasing); \([\ell_t,h_t)\) the Saver&rsquo;s-Credit MAGI bands with rates \(\rho_t\) (decreasing); and \(L_I,L_H,B\) the IRA cap, HSA cap, and the $2,000 credit base cap. The decision variables are the contributions \(c_I\in[0,\min(L_I,w)],\ c_H\in[0,L_H]\), AGI \(a\), taxable income \(m\) (with slack \(\sigma\)), bracket fills \(b_k\), tax-before-credits \(\tau\), tier selectors \(z_t\in\{0,1\}\), credit base \(\beta\) and per-tier base \(\beta_t\), usable credit \(u\), and total tax \(T\):</p>
+<div class="modelbox">
+$$
+\begin{array}{rll}
+\displaystyle\min_{\,c_I,c_H,z,\dots} & T \;+\; \varepsilon\,(c_I + c_H) & \text{(total tax; }\varepsilon\text{ breaks ties to least contribution)}\\[4pt]
+\textrm{s.t.} & a \;=\; w + y_0 - c_I - c_H & \text{(AGI)}\\[2pt]
+& m - \sigma \;=\; a - d_{\mathrm{std}},\qquad m,\ \sigma \ge 0 & \text{(taxable income}=\max(a-d_{\mathrm{std}},0))\\[2pt]
+& \sum_{k} b_k \;=\; m,\qquad 0 \le b_k \le \Delta_k & \text{(bracket fill)}\\[2pt]
+& \tau \;=\; \sum_{k} r_k\, b_k & \text{(tax before credits, convex PWL)}\\[2pt]
+& \sum_{t} z_t \;=\; 1,\qquad z_t \in \{0,1\} & \text{(pick one Saver tier)}\\[2pt]
+& \sum_{t} \ell_t\, z_t \;\le\; a \;\le\; \sum_{t} h_t\, z_t & \text{(AGI in the chosen band)}\\[2pt]
+& \beta \le B,\qquad \beta \le c_I & \text{(base}=\min(c_I,B))\\[2pt]
+& \beta_t \le B z_t,\quad \beta_t \le \beta,\quad \beta_t \ge \beta - B(1-z_t) & \text{(linearize }u=(\textstyle\sum_t\rho_t z_t)\beta)\\[2pt]
+& u \;=\; \sum_{t} \rho_t\, \beta_t,\qquad u \le \tau & \text{(nonrefundable credit)}\\[2pt]
+& T \;=\; \tau - u \;\ge\; 0 & \text{(total tax)}
+\end{array}
+$$
+</div>
+<p class="sub" style="font-size:14px">Two structural facts keep this small. The bracket fill needs <strong>no</strong> ordering binaries: because the rates \(r_k\) increase and we minimize, the cheapest feasible \(b\) fills the low brackets first &mdash; the convex piecewise-linear tax. The only integers are the tier selectors \(z_t\); the bilinear credit \(u=(\sum_t\rho_t z_t)\beta\) becomes linear via the per-tier \(\beta_t\) with the standard big-\(M\) coupling (\(M=B\)). Solved with <code>scipy.optimize.milp</code> (HiGHS). The two genuinely non-convex pieces stay <em>out</em> of the LP: the Tax Table&rsquo;s $50-row rounding is restored by a bounded post-solve reconciliation onto the real <code>tax()</code> (gap \(\le\$3.50\) in practice), and the two SCC loops are resolved by the fixed-point solvers before the levers are optimized.</p>
 
 <h2>2025 constants used</h2>
 <table>
